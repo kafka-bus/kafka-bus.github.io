@@ -1,8 +1,8 @@
-# Конфигурация (Laravel)
+# Configuration (Laravel)
 
-Вся конфигурация находится в `config/kafka-bus.php` и разделена на четыре секции.
+All configuration lives in `config/kafka-bus.php` and is divided into four sections.
 
-## Соединения
+## Connections
 
 ```php
 'default' => env('KAFKA_CONNECTION', 'kafka'),
@@ -20,7 +20,7 @@
         ],
     ],
 
-    // Для тестов — не обращается к реальному брокеру
+    // For tests — does not connect to a real broker
     'testing' => [
         'driver'  => 'null',
         'options' => [],
@@ -28,9 +28,11 @@
 ],
 ```
 
-`default` — имя активного соединения. Переключить во время выполнения: `KafkaBus::onConnection('testing')->publish(...)`.
+`default` — the name of the active connection. Switch at runtime: `KafkaBus::onConnection('testing')->publish(...)`.
 
-## Топики
+## Topics
+
+In the Laravel package, the physical topic name is assembled automatically from `topic_prefix` and the value in `topics`:
 
 ```php
 'topic_prefix' => env('KAFKA_PREFIX', env('APP_ENV', 'local') . '.'),
@@ -41,7 +43,7 @@
 ],
 ```
 
-Итоговое имя топика = `topic_prefix` + значение из `topics`. При `APP_ENV=production`:
+Final topic name = `topic_prefix` + value from `topics`. With `APP_ENV=production`:
 - `products` → `production.fact.products.1`
 - `orders` → `production.fact.orders.1`
 
@@ -50,18 +52,18 @@
 ```php
 'producers' => [
 
-    // Глобальные middleware для всех маршрутов
+    // Global middleware for all routes
     'middleware' => [
-        // \Micromus\KafkaBusCommiter\Middleware\ProducerIdempotencyMiddleware::class,
+        // \KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware::class,
     ],
 
-    // Маршруты: класс сообщения → ключ топика
+    // Routes: message class → topic key
     'routes' => [
         App\Kafka\Messages\ProductMessage::class => 'products',
         App\Kafka\Messages\OrderMessage::class   => 'orders',
     ],
 
-    'flush_timeout' => 5000, // мс
+    'flush_timeout' => 5000, // ms
     'flush_retries' => 5,
 
     'additional_options' => [
@@ -70,9 +72,9 @@
 ],
 ```
 
-### Расширенный формат маршрута
+### Extended Route Format
 
-Для индивидуальных настроек конкретного маршрута используйте массив вместо строки:
+For per-route individual settings, use an array instead of a string:
 
 ```php
 'routes' => [
@@ -91,31 +93,31 @@
 ```php
 'consumers' => [
 
-    // Глобальные middleware для всех воркеров
+    // Global middleware for all workers
     'middleware' => [
-        // \Micromus\KafkaBusCommiter\Middleware\ConsumerCommiterMiddleware::class,
+        // \KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware::class,
     ],
 
     'workers' => [
-        // --- Варианты конфигурации воркера ---
+        // --- Worker configuration options ---
 
-        // 1. Один топик, воркер = ключ топика
+        // 1. Single topic, worker name = topic key
         'products' => App\Kafka\Consumers\ProductsConsumer::class,
 
-        // 2. Один топик с переопределениями
+        // 2. Single topic with overrides
         'orders' => [
             'middleware' => [],
             'handler'    => App\Kafka\Consumers\OrdersConsumer::class,
         ],
 
-        // 3. Один топик, имя воркера ≠ ключ топика
+        // 3. Single topic, worker name ≠ topic key
         'products-secondary' => [
             'topic_key'  => 'products',
             'middleware' => [],
             'handler'    => App\Kafka\Consumers\ProductsSecondaryConsumer::class,
         ],
 
-        // 4. Несколько топиков в одном воркере
+        // 4. Multiple topics in one worker
         'default' => [
             'middleware'       => [],
             'auto_commit'      => false,
@@ -130,7 +132,7 @@
         ],
     ],
 
-    // Глобальные настройки consumer'а (переопределяются на уровне воркера)
+    // Global consumer settings (overridable at the worker level)
     'auto_commit'     => env('KAFKA_CONSUMER_AUTO_COMMIT', false),
     'consume_timeout' => 5_000,
 
@@ -144,29 +146,29 @@
 ],
 ```
 
-### Приоритет опций воркера
+### Worker Option Priority
 
-Опции разрешаются в следующем порядке (от менее к более приоритетному):
+Options are resolved in the following order (from lowest to highest priority):
 
 ```
-global consumers.* → worker entry → per-topic (для multi-topic воркера)
+global consumers.* → worker entry → per-topic (for multi-topic workers)
 ```
 
-## Все переменные окружения
+## All Environment Variables
 
-| Переменная | По умолчанию | Описание |
-|---|---|---|
-| `KAFKA_CONNECTION` | `kafka` | Активное соединение |
-| `KAFKA_BROKER_LIST` | `localhost:9092` | Адреса брокеров |
-| `KAFKA_PREFIX` | `{APP_ENV}.` | Префикс имён топиков |
-| `KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` | Протокол безопасности |
-| `KAFKA_SASL_MECHANISMS` | `PLAIN` | Механизм SASL |
-| `KAFKA_SASL_USERNAME` | — | Логин SASL |
-| `KAFKA_SASL_PASSWORD` | — | Пароль SASL |
-| `KAFKA_DEBUG` | `false` | Отладочные логи rdkafka |
-| `KAFKA_CONSUMER_AUTO_COMMIT` | `false` | Авто-коммит офсетов |
-| `KAFKA_CONSUMER_GROUP_ID` | `{APP_NAME}` | Consumer group |
-| `KAFKA_MAX_POLL_INTERVAL_MS` | `300000` | Макс. интервал между poll |
-| `KAFKA_SESSION_TIMEOUT_MS` | `45000` | Таймаут сессии |
-| `KAFKA_HEARTBEAT_INTERVAL_MS` | `3000` | Интервал heartbeat |
-| `KAFKA_PRODUCER_COMPRESSION_CODEC` | `snappy` | Алгоритм сжатия |
+| Variable                           | Default          | Description               |
+|------------------------------------|------------------|---------------------------|
+| `KAFKA_CONNECTION`                 | `kafka`          | Active connection         |
+| `KAFKA_BROKER_LIST`                | `localhost:9092` | Broker addresses          |
+| `KAFKA_PREFIX`                     | `{APP_ENV}.`     | Topic name prefix         |
+| `KAFKA_SECURITY_PROTOCOL`          | `SASL_PLAINTEXT` | Security protocol         |
+| `KAFKA_SASL_MECHANISMS`            | `PLAIN`          | SASL mechanism            |
+| `KAFKA_SASL_USERNAME`              | —                | SASL username             |
+| `KAFKA_SASL_PASSWORD`              | —                | SASL password             |
+| `KAFKA_DEBUG`                      | `false`          | rdkafka debug logs        |
+| `KAFKA_CONSUMER_AUTO_COMMIT`       | `false`          | Auto-commit offsets       |
+| `KAFKA_CONSUMER_GROUP_ID`          | `{APP_NAME}`     | Consumer group            |
+| `KAFKA_MAX_POLL_INTERVAL_MS`       | `300000`         | Max interval between polls|
+| `KAFKA_SESSION_TIMEOUT_MS`         | `45000`          | Session timeout           |
+| `KAFKA_HEARTBEAT_INTERVAL_MS`      | `3000`           | Heartbeat interval        |
+| `KAFKA_PRODUCER_COMPRESSION_CODEC` | `snappy`         | Compression algorithm     |

@@ -3,53 +3,38 @@ layout: home
 
 hero:
   name: Kafka Bus
-  text: PHP-клиент для Apache Kafka
-  tagline: Типизированные сообщения, middleware-конвейер и удобное тестирование без лишнего кода
+  text: PHP client for Apache Kafka
+  tagline: Typed messages, middleware pipeline, and convenient testing without boilerplate
   actions:
     - theme: brand
-      text: Быстрый старт
-      link: /guide/quickstart
-    - theme: alt
-      text: Установка ядра
-      link: /core/installation
+      text: Quick Start
+      link: /docs/core/installation
     - theme: alt
       text: GitHub
-      link: https://github.com/micromus/kafka-bus
+      link: https://github.com/kafka-bus/kafka-bus
 
 features:
   - icon: 🚌
-    title: kafka-bus
-    details: Ядро экосистемы. Bus-фасад с поддержкой нескольких соединений, маршрутизацией топиков, конвейером middleware и встроенными фейками для тестирования.
-    link: /core/installation
-    linkText: Документация ядра
+    title: kafka-bus/core
+    details: The ecosystem core. A Bus facade with multi-connection support, topic routing, a middleware pipeline, and built-in fakes for testing.
+    link: /docs/core/installation
+    linkText: Core Documentation
 
   - icon: 🟥
-    title: kafka-bus-laravel
-    details: Laravel-интеграция с автодискавери, конфигом из коробки, Artisan-командами для управления воркерами и KafkaBus::fake() для тестов.
+    title: kafka-bus/laravel-bridge
+    details: Laravel integration with auto-discovery, out-of-the-box config, Artisan commands for managing workers, and KafkaBus::fake() for tests.
     link: /laravel/installation
-    linkText: Документация Laravel
+    linkText: Laravel Documentation
 
   - icon: 📨
-    title: kafka-bus-messages
-    details: Типизированные Payload, JsonMessage и DomainMessage с автоматическим кастингом полей, поддержкой событий create/update/delete и тест-фабриками.
+    title: kafka-bus/messages
+    details: Typed Payload, JsonMessage, and DomainMessage with automatic field casting, create/update/delete event support, and test factories.
     link: /packages/messages
-    linkText: Документация Messages
+    linkText: Messages Documentation
 
   - icon: ✅
-    title: kafka-bus-commiter
-    details: Идемпотентная обработка сообщений через middleware. Отслеживает обработанные сообщения, пропускает дубликаты и ограничивает количество попыток.
+    title: kafka-bus/commiter
+    details: Idempotent message processing via middleware. Tracks processed messages, skips duplicates, and limits the number of retry attempts.
     link: /packages/commiter
-    linkText: Документация Commiter
-
-  - icon: 📤
-    title: kafka-bus-outbox
-    details: Реализация паттерна Transactional Outbox для надёжной публикации сообщений в Kafka в связке с транзакциями базы данных.
-    link: /packages/outbox
-    linkText: Документация Outbox
-
-  - icon: 🌀
-    title: kafka-bus-spiral
-    details: Интеграция с фреймворком Spiral. Регистрирует Bus и воркеры через bootloaders, поддерживает конфигурацию через ENV и Spiral Container.
-    link: https://github.com/micromus/kafka-bus-spiral
-    linkText: GitHub
+    linkText: Commiter Documentation
 ---
