@@ -9,6 +9,7 @@
 | `kafka:route:list`                           | List producer routes                           |
 | `kafka:offset:show {worker}`                 | Show current offsets for a worker              |
 | `kafka:offset:set {worker} {topic} {offset}` | Set an offset                                  |
+| `kafka:commit {key}`                         | Manually create a commit record in the database |
 
 ## kafka:consume
 
@@ -125,4 +126,34 @@ The command prints the result:
 
 ::: danger Important
 The worker must be **stopped** while resetting offsets. If the consumer process is running, it will overwrite the new position on the next commit.
+:::
+
+## kafka:commit
+
+Manually creates a commit record in the database for the given key. Useful when a message needs to be marked as processed without going through the normal consumer pipeline.
+
+```bash
+php artisan kafka:commit {key}
+```
+
+### Example
+
+```bash
+php artisan kafka:commit order-12345
+```
+
+If the key has already been committed, the command outputs a warning and exits with a non-zero code:
+
+```
+ WARN  Commit for key [order-12345] already exists.
+```
+
+Otherwise, the commit is saved and the command reports success:
+
+```
+ INFO  Commit for key [order-12345] has been saved.
+```
+
+::: tip
+This command is intended for recovery scenarios — for example, when a message was processed outside the consumer or needs to be skipped permanently.
 :::
