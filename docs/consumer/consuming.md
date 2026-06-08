@@ -68,7 +68,7 @@ class ProductHandler
 
 ## Custom Message Factory
 
-The `#[MessageFactory]` attribute lets you control payload deserialization before it reaches the handler. This is the key integration point with [`kafka-bus-messages`](/packages/messages):
+The `#[MessageFactory]` attribute lets you control payload deserialization before it reaches the handler. This is the key integration point with [`kafka-bus/messages`](/docs/components/messages):
 
 ```php
 use KafkaBus\Core\Consumers\Attributes\MessageFactory;
