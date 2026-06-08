@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Kafka Bus',
-  description: 'PHP-клиент для Apache Kafka на базе ext-rdkafka',
+  description: 'PHP client for Apache Kafka',
 
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
@@ -36,10 +36,10 @@ export default defineConfig({
 
     sidebar: {
       '/docs/': [
-        { text: 'Установка', link: '/docs/installation' },
-        { text: 'Конфигурация', link: '/docs/configuration' },
-        { text: 'Архитектура', link: '/docs/architecture' },
-        { text: 'Топики', link: '/docs/topics' },
+        { text: 'Installation', link: '/docs/installation' },
+        { text: 'Configuration', link: '/docs/configuration' },
+        { text: 'Architecture', link: '/docs/architecture' },
+        { text: 'Topics', link: '/docs/topics' },
 
         {
           text: 'Producer',
@@ -70,12 +70,12 @@ export default defineConfig({
         {
           text: 'Laravel',
           items: [
-            { text: 'Установка', link: '/docs/laravel/installation' },
-            { text: 'Конфигурация', link: '/docs/laravel/configuration' },
-            { text: 'Producer', link: '/docs/laravel/producers' },
-            { text: 'Consumer', link: '/docs/laravel/consumers' },
-            { text: 'Artisan-команды', link: '/docs/laravel/commands' },
-            { text: 'Тестирование', link: '/docs/laravel/testing' },
+            { text: 'Installation', link: '/docs/laravel/installation' },
+            { text: 'Configuration', link: '/docs/laravel/configuration' },
+            { text: 'Producing', link: '/docs/laravel/producers' },
+            { text: 'Consuming', link: '/docs/laravel/consumers' },
+            { text: 'Commands', link: '/docs/laravel/commands' },
+            { text: 'Testing', link: '/docs/laravel/testing' },
           ],
         },
       ],
@@ -96,11 +96,11 @@ export default defineConfig({
 
     editLink: {
       pattern: 'https://github.com/kafka-bus/kafka-bus.github.io/edit/main/:path',
-      text: 'Редактировать эту страницу',
+      text: 'Edit this page',
     },
 
     lastUpdated: {
-      text: 'Обновлено',
+      text: 'Updated',
     },
   },
 })
