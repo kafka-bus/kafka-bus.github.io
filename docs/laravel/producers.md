@@ -1,4 +1,4 @@
-# Producer (Laravel)
+# Producer
 
 ## Создание класса сообщения
 
@@ -9,9 +9,11 @@
 
 namespace App\Kafka\Messages;
 
-use Micromus\KafkaBus\Interfaces\Producers\Messages\ProducerMessageInterface;
+use KafkaBus\Core\Interfaces\Producers\Messages\ProducerMessageInterface;
+use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
+use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
 
-final readonly class ProductMessage implements ProducerMessageInterface
+final readonly class ProductMessage implements ProducerMessageInterface, HasHeaders, HasKey
 {
     public function __construct(
         private int    $id,
@@ -28,12 +30,14 @@ final readonly class ProductMessage implements ProducerMessageInterface
         ]);
     }
 
+    // Передаётся если использовать интерфейс HasKey
     public function getKey(): ?string
     {
         // Kafka partition key — все события одного продукта попадут в одну партицию
         return (string) $this->id;
     }
 
+    // Передаётся если использовать интерфейс HasHeaders
     public function getHeaders(): array
     {
         return ['event' => 'product.updated'];
@@ -99,9 +103,9 @@ KafkaBus::onConnection('analytics')->publish($message);
 $this->bus->onConnection('analytics')->publish($message);
 ```
 
-## Интеграция с kafka-bus-messages
+## Интеграция с kafka-bus/messages
 
-Если установлен пакет `kafka-bus-messages`, используйте `DomainMessage` для структурированных событий:
+Если установлен пакет `kafka-bus/messages`, используйте `DomainMessage` для структурированных событий:
 
 ```php
 use Micromus\KafkaBusMessages\DomainMessage;
@@ -127,7 +131,7 @@ Payload будет выглядеть так:
 }
 ```
 
-Подробнее о сообщениях — в разделе [Messages](/packages/messages).
+Подробнее о сообщениях — в разделе [Messages](/docs/components/messages).
 
 ## Добавление idempotency key
 
@@ -150,9 +154,9 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasIdem
 ```php
 'producers' => [
     'middleware' => [
-        \Micromus\KafkaBusCommiter\Middleware\ProducerIdempotencyMiddleware::class,
+        KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware::class,
     ],
 ],
 ```
 
-Подробнее — в разделе [Commiter](/packages/commiter).
+Подробнее — в разделе [Commiter](/docs/components/commiter).

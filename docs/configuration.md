@@ -9,9 +9,9 @@
 `KafkaConnection` использует `ext-rdkafka` и принимает любые опции `librdkafka` в массиве `options`:
 
 ```php
-use Micromus\KafkaBus\Connections\Config\KafkaConnectionConfig;
-use Micromus\KafkaBus\Connections\Registry\ConnectionRegistry;
-use Micromus\KafkaBus\Connections\Registry\DriverRegistry;
+use KafkaBus\Core\Connections\Config\KafkaConnectionConfig;
+use KafkaBus\Core\Connections\Registry\ConnectionRegistry;
+use KafkaBus\Core\Connections\Registry\DriverRegistry;
 
 $config = new KafkaConnectionConfig(options: [
     'metadata.broker.list' => 'localhost:9092',
@@ -65,7 +65,7 @@ $bus->onConnection('analytics')->publish($message);
 `NullConnection` принимает вызовы, но не взаимодействует с реальным брокером. Используйте его в тестовом окружении:
 
 ```php
-use Micromus\KafkaBus\Connections\NullConnection;
+use KafkaBus\Core\Connections\NullConnection;
 
 // Вместо реального соединения:
 $connectionRegistry = new ConnectionRegistry(
@@ -84,7 +84,7 @@ $connectionRegistry = new ConnectionRegistry(
 После настройки реестра соединений собирается `Bus` — центральный фасад пакета:
 
 ```php
-use Micromus\KafkaBus\Bus;
+use KafkaBus\Core\Bus;
 
 $bus = new Bus(
     new Bus\ThreadRegistry(
@@ -98,19 +98,19 @@ $bus = new Bus(
 );
 ```
 
-## Справочник опций librdkafka
+## Справочник опций
 
 Наиболее часто используемые опции:
 
-| Опция | Описание | Пример |
-|---|---|---|
-| `metadata.broker.list` | Адреса брокеров | `kafka:9092,kafka2:9092` |
-| `security.protocol` | Протокол безопасности | `SASL_PLAINTEXT`, `SSL` |
-| `sasl.mechanisms` | Механизм SASL | `PLAIN`, `SCRAM-SHA-256` |
-| `debug` | Отладочные логи rdkafka | `consumer,cgrp,topic` |
-| `compression.codec` | Сжатие (для producer) | `snappy`, `gzip`, `lz4` |
-| `group.id` | Consumer group | `my-service` |
-| `auto.offset.reset` | Стартовая позиция | `earliest`, `latest` |
-| `max.poll.interval.ms` | Таймаут поллинга | `300000` |
+| Опция                  | Описание                | Пример                   |
+|------------------------|-------------------------|--------------------------|
+| `metadata.broker.list` | Адреса брокеров         | `kafka:9092,kafka2:9092` |
+| `security.protocol`    | Протокол безопасности   | `SASL_PLAINTEXT`, `SSL`  |
+| `sasl.mechanisms`      | Механизм SASL           | `PLAIN`, `SCRAM-SHA-256` |
+| `debug`                | Отладочные логи rdkafka | `consumer,cgrp,topic`    |
+| `compression.codec`    | Сжатие (для producer)   | `snappy`, `gzip`, `lz4`  |
+| `group.id`             | Consumer group          | `my-service`             |
+| `auto.offset.reset`    | Стартовая позиция       | `earliest`, `latest`     |
+| `max.poll.interval.ms` | Таймаут поллинга        | `300000`                 |
 
 Полный список — в [документации librdkafka](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md).

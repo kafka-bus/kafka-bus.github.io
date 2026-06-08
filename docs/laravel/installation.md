@@ -2,16 +2,16 @@
 
 ## Требования
 
-| Зависимость | Версия |
-|---|---|
-| PHP | `^8.2` |
-| Laravel | `^10.0 \|\| ^11.0 \|\| ^12.0` |
-| `ext-rdkafka` | любая актуальная |
+| Зависимость   | Версия                        |
+|---------------|-------------------------------|
+| PHP           | `^8.2`                        |
+| Laravel       | `^10.0 \|\| ^11.0 \|\| ^12.0` |
+| `ext-rdkafka` | любая актуальная              |
 
 ## Установка
 
 ```bash
-composer require micromus/kafka-bus-laravel
+composer require kafka-bus/laravel-bridge
 ```
 
 Пакет использует автодискавери — `KafkaBusServiceProvider` регистрируется автоматически.
@@ -42,7 +42,7 @@ KAFKA_CONSUMER_GROUP_ID=my-service
 KAFKA_CONNECTION=kafka
 ```
 
-### SASL-аутентификация (Confluent Cloud, MSK и др.)
+### SASL-аутентификация
 
 ```dotenv
 KAFKA_BROKER_LIST=pkc-xxx.us-east-1.aws.confluent.cloud:9092
@@ -52,7 +52,7 @@ KAFKA_SASL_USERNAME=your-api-key
 KAFKA_SASL_PASSWORD=your-api-secret
 ```
 
-## Установка Commiter (опционально)
+## Установка Commiter
 
 Если нужна идемпотентная обработка сообщений — опубликуйте конфиг и миграции Commiter:
 
@@ -64,8 +64,26 @@ php artisan migrate
 Создаётся:
 - `config/kafka-bus-commiter.php`
 - Миграция таблицы `kafka_bus_commits`
+  
+Включить middleware в конфиге:
 
-Подробнее — в разделе [Commiter](/packages/commiter).
+```php
+// config/kafka-bus.php
+'consumers' => [
+    'middleware' => [
+        # Можно задать на уровне worker если коммиты нужны не на всех топиках
+        KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware::class,
+    ],
+],
+
+'producers' => [
+    'middleware' => [
+        KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware::class,
+    ],
+],
+```
+
+Подробнее — в разделе [Commiter](/docs/components/commiter).
 
 ## Проверка установки
 
@@ -79,7 +97,7 @@ php artisan kafka:route:list
 
 ## Что дальше
 
-- [Конфигурация](/laravel/configuration) — полный разбор `config/kafka-bus.php`
-- [Producer](/laravel/producers) — публикация сообщений через Facade и DI
-- [Consumer](/laravel/consumers) — создание воркеров и обработчиков
-- [Artisan-команды](/laravel/commands) — управление воркерами и офсетами
+- [Конфигурация](/docs/laravel/configuration) — полный разбор `config/kafka-bus.php`
+- [Producer](/docs/laravel/producers) — публикация сообщений через Facade и DI
+- [Consumer](/docs/laravel/consumers) — создание воркеров и обработчиков
+- [Artisan-команды](/docs/laravel/commands) — управление воркерами и офсетами

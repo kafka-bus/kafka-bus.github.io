@@ -5,29 +5,27 @@
 ## Установка
 
 ```bash
-composer require micromus/kafka-bus-messages
+composer require kafka-bus/messages
 ```
 
 ## Ключевые концепции
 
-| Класс | Описание |
-|---|---|
-| `Payload` | Гибкий key-value контейнер с типизированным кастингом |
-| `JsonMessage` | `Payload`, который сериализуется напрямую в JSON-сообщение для Kafka |
+| Класс           | Описание                                                               |
+|-----------------|------------------------------------------------------------------------|
+| `Payload`       | Гибкий key-value контейнер с типизированным кастингом                  |
+| `JsonMessage`   | `Payload`, который сериализуется напрямую в JSON-сообщение для Kafka   |
 | `DomainMessage` | Структурированное сообщение с типом события и списком изменённых полей |
-| **Casters** | Классы для преобразования значений при чтении и записи |
-
----
+| **Casters**     | Классы для преобразования значений при чтении и записи                 |
 
 ## Payload
 
 Базовый класс для типизированных данных сообщения. Расширьте его и объявите кастеры для автоматического приведения типов:
 
 ```php
-use Micromus\KafkaBusMessages\Data\Payload;
-use Micromus\KafkaBusMessages\Data\Casters\IntegerCaster;
-use Micromus\KafkaBusMessages\Data\Casters\PayloadCaster;
-use Micromus\KafkaBusMessages\Data\Casters\CollectionCaster;
+use KafkaBus\Messages\Data\Payload;
+use KafkaBus\Messages\Data\Casters\IntegerCaster;
+use KafkaBus\Messages\Data\Casters\PayloadCaster;
+use KafkaBus\Messages\Data\Casters\CollectionCaster;
 
 /**
  * @property int             $id
@@ -63,19 +61,19 @@ echo $product->attributes[0]->value;  // string("Silver")
 
 ## Доступные кастеры
 
-| Кастер | Описание |
-|---|---|
-| `IntegerCaster` | Приводит к `int` |
-| `FloatCaster` | Приводит к `float` |
-| `DateTimeCaster` | Парсит/форматирует `DateTimeInterface`, формат настраивается |
-| `PayloadCaster` | Гидрирует вложенный `Payload`-подкласс из массива |
-| `CollectionCaster` | Применяет другой кастер к каждому элементу массива |
-| `NullableCaster` | Оборачивает любой кастер, разрешая `null` |
+| Кастер             | Описание                                                     |
+|--------------------|--------------------------------------------------------------|
+| `IntegerCaster`    | Приводит к `int`                                             |
+| `FloatCaster`      | Приводит к `float`                                           |
+| `DateTimeCaster`   | Парсит/форматирует `DateTimeInterface`, формат настраивается |
+| `PayloadCaster`    | Гидрирует вложенный `Payload`-подкласс из массива            |
+| `CollectionCaster` | Применяет другой кастер к каждому элементу массива           |
+| `NullableCaster`   | Оборачивает любой кастер, разрешая `null`                    |
 
 ```php
-use Micromus\KafkaBusMessages\Data\Casters\DateTimeCaster;
-use Micromus\KafkaBusMessages\Data\Casters\NullableCaster;
-use Micromus\KafkaBusMessages\Data\Casters\FloatCaster;
+use KafkaBus\Messages\Data\Casters\DateTimeCaster;
+use KafkaBus\Messages\Data\Casters\NullableCaster;
+use KafkaBus\Messages\Data\Casters\FloatCaster;
 
 protected function definitionCasters(): array
 {
@@ -87,14 +85,12 @@ protected function definitionCasters(): array
 }
 ```
 
----
-
 ## JsonMessage
 
 `JsonMessage` расширяет `Payload` и реализует `ProducerMessageInterface` — его можно публиковать напрямую в Kafka:
 
 ```php
-use Micromus\KafkaBusMessages\JsonMessage;
+use KafkaBus\Messages\JsonMessage;
 
 $message = new JsonMessage([
     'order_id' => 123,
@@ -105,8 +101,6 @@ $message = new JsonMessage([
 // Payload → {"order_id":123,"status":"shipped","items":[1,2,3]}
 $bus->publish($message);
 ```
-
----
 
 ## DomainMessage
 
@@ -140,10 +134,10 @@ class ProductMessage extends DomainMessage
 }
 ```
 
-### Публикация (producer)
+### Produce
 
 ```php
-use Micromus\KafkaBusMessages\DomainEventEnum;
+use KafkaBus\Messages\DomainEventEnum;
 
 $message = new ProductMessage(
     attributes: ['id' => 42, 'name' => 'Laptop Pro', 'price' => 1299.99],
@@ -168,32 +162,30 @@ Kafka-сообщение (payload):
 }
 ```
 
-### Потребление (consumer)
+### Consume
 
 Используйте атрибут `#[MessageFactory]` с `DomainMessageFactory`:
 
 ```php
-use Micromus\KafkaBus\Consumers\Attributes\MessageFactory;
-use Micromus\KafkaBusMessages\Factories\DomainMessageFactory;
+use KafkaBus\Core\Consumers\Attributes\MessageFactory;
+use KafkaBus\Messages\Factories\DomainMessageFactory;
 
 class ProductConsumer
 {
     #[MessageFactory(new DomainMessageFactory(ProductMessage::class))]
     public function __invoke(ProductMessage $message): void
     {
-        echo $message->event->value; // 'create' | 'update' | 'delete'
+        echo $message->getEvent()->value; // 'create' | 'update' | 'delete'
         echo $message->id;           // int(42) — после кастинга
         echo $message->name;         // string("Laptop Pro")
 
         // Список изменённых полей
-        if (in_array('price', $message->dirty)) {
+        if (in_array('price', $message->getDirty())) {
             $this->updatePriceIndex($message->id, $message->price);
         }
     }
 }
 ```
-
----
 
 ## Тест-фабрики
 
@@ -202,7 +194,7 @@ class ProductConsumer
 ### DomainMessageTestFactory
 
 ```php
-use Micromus\KafkaBusMessages\Testing\DomainMessageTestFactory;
+use KafkaBus\Messages\Testing\DomainMessageTestFactory;
 
 /**
  * @extends DomainMessageTestFactory<ProductPayload>
@@ -244,7 +236,7 @@ $array = ProductTestFactory::new()->makeArray();
 ### PayloadTestFactory
 
 ```php
-use Micromus\KafkaBusMessages\Testing\PayloadTestFactory;
+use KafkaBus\Messages\Testing\PayloadTestFactory;
 
 /**
  * @extends PayloadTestFactory<CategoryPayload>

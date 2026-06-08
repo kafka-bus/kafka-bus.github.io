@@ -1,25 +1,23 @@
-# kafka-bus-commiter
+# Commiter
 
-Middleware-пакет для [kafka-bus](https://github.com/micromus/kafka-bus), обеспечивающий идемпотентную обработку сообщений: отслеживает обработанные сообщения, предотвращает дублирование и ограничивает количество попыток обработки.
+Middleware-пакет для [kafka-bus](https://github.com/kafka-bus/kafka-bus), обеспечивающий идемпотентную обработку сообщений: отслеживает обработанные сообщения, предотвращает дублирование и ограничивает количество попыток обработки.
 
 ## Установка
 
 ```bash
-composer require micromus/kafka-bus-commiter
+composer require kafka-bus/commiter
 ```
 
 ## Как работает
 
 `ConsumerCommiterMiddleware` встраивается в consumer-конвейер и обрабатывает четыре сценария:
 
-| Сценарий | Действие |
-|---|---|
+| Сценарий                                        | Действие                                        |
+|-------------------------------------------------|-------------------------------------------------|
 | Сообщение уже обработано (`commitedAt != null`) | Логирует предупреждение, останавливает конвейер |
-| Превышено `maxAttempt` | Логирует ошибку, останавливает конвейер |
-| Сообщение обработано успешно | Вызывает `commit()`, фиксирует как обработанное |
-| Обработчик выбросил исключение | Вызывает `failed()`, перебрасывает исключение |
-
----
+| Превышено `maxAttempt`                          | Логирует ошибку, останавливает конвейер         |
+| Сообщение обработано успешно                    | Вызывает `commit()`, фиксирует как обработанное |
+| Обработчик выбросил исключение                  | Вызывает `failed()`, перебрасывает исключение   |
 
 ## Базовое использование
 
@@ -28,8 +26,8 @@ composer require micromus/kafka-bus-commiter
 Необходимо реализовать `RepositorySourceInterface` для хранения состояния сообщений (БД, Redis и т.д.):
 
 ```php
-use Micromus\KafkaBusCommiter\Attempt;
-use Micromus\KafkaBusCommiter\Interfaces\RepositorySourceInterface;
+use KafkaBus\Commiter\Attempt;
+use KafkaBus\Commiter\Interfaces\RepositorySourceInterface;
 
 class DatabaseRepositorySource implements RepositorySourceInterface
 {
@@ -46,7 +44,7 @@ class DatabaseRepositorySource implements RepositorySourceInterface
         }
 
         return new Attempt(
-            attempts:    $record->attempts,
+            attempts: $record->attempts + 1,
             committedAt: $record->committed_at ? new DateTime($record->committed_at) : null,
         );
     }
@@ -80,8 +78,8 @@ class DatabaseRepositorySource implements RepositorySourceInterface
 ### 2. Подключите middleware
 
 ```php
-use Micromus\KafkaBusCommiter\Middleware\ConsumerCommiterMiddleware;
-use Micromus\KafkaBusCommiter\Repositories\NativeMessageRepository;
+use KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware;
+use KafkaBus\Commiter\Repositories\NativeMessageRepository;
 
 $repository = new NativeMessageRepository(new DatabaseRepositorySource());
 
@@ -93,7 +91,7 @@ $workerRegistry = MemoryWorkerRegistry::make()
             middleware: [
                 new ConsumerCommiterMiddleware(
                     repository: $repository,
-                    logger:     app('log'),  // PSR-3
+                    logger:     new NullLogger(),  // PSR-3
                     maxAttempt: 3,           // -1 = без ограничений
                 )
             ]
@@ -103,13 +101,11 @@ $workerRegistry = MemoryWorkerRegistry::make()
 
 ### Параметры middleware
 
-| Параметр | Тип | По умолчанию | Описание |
-|---|---|---|---|
-| `repository` | `RepositorySourceInterface` | — | Хранилище состояния |
-| `logger` | `LoggerInterface` | `NullLogger` | PSR-3 совместимый логгер |
-| `maxAttempt` | `int` | `-1` | Максимум попыток. `-1` — без ограничений |
-
----
+| Параметр     | Тип                         | По умолчанию | Описание                                 |
+|--------------|-----------------------------|--------------|------------------------------------------|
+| `repository` | `RepositorySourceInterface` | —            | Хранилище состояния                      |
+| `logger`     | `LoggerInterface`           | `NullLogger` | PSR-3 совместимый логгер                 |
+| `maxAttempt` | `int`                       | `-1`         | Максимум попыток. `-1` — без ограничений |
 
 ## Idempotency Keys
 
@@ -130,15 +126,13 @@ $workerRegistry = MemoryWorkerRegistry::make()
 - timestamp (меняется при ретрае)
 - случайный UUID, генерируемый при каждой отправке
 
----
-
 ## ProducerIdempotencyMiddleware
 
 ### Реализуйте HasIdempotency на сообщении
 
 ```php
-use Micromus\KafkaBus\Interfaces\Producers\Messages\ProducerMessageInterface;
-use Micromus\KafkaBusCommiter\Interfaces\HasIdempotency;
+use KafkaBus\Core\Interfaces\Producers\Messages\ProducerMessageInterface;
+use KafkaBus\Commiter\Interfaces\HasIdempotency;
 
 final readonly class ProductCreatedMessage implements ProducerMessageInterface, HasIdempotency
 {
@@ -162,8 +156,8 @@ final readonly class ProductCreatedMessage implements ProducerMessageInterface, 
 ### Подключите middleware в маршрут publisher'а
 
 ```php
-use Micromus\KafkaBus\Bus\Publishers\Router\Options;
-use Micromus\KafkaBusCommiter\Middleware\ProducerIdempotencyMiddleware;
+use KafkaBus\Core\Bus\Publishers\Router\Options;
+use KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware;
 
 $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->add(
@@ -178,8 +172,6 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
 
 Middleware добавит заголовок `x-idempotency-key` к каждому исходящему сообщению. Если сообщение не реализует `HasIdempotency`, заголовок не добавляется.
 
----
-
 ## IdempotencyMessageRepository
 
 На стороне consumer'а `IdempotencyMessageRepository` читает заголовок `x-idempotency-key` и строит ключ хранилища как `"{header}-{topicName}"`. Один и тот же idempotency key в разных топиках — это разные события.
@@ -187,60 +179,11 @@ Middleware добавит заголовок `x-idempotency-key` к каждом
 Если заголовок отсутствует — fallback на `msgId()`, поэтому старые producer'ы без idempotency работают без изменений.
 
 ```php
-use Micromus\KafkaBusCommiter\Middleware\ConsumerCommiterMiddleware;
-use Micromus\KafkaBusCommiter\Repositories\IdempotencyMessageRepository;
+use KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware;
+use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
 
 $repository = new IdempotencyMessageRepository(new DatabaseRepositorySource());
 
 new ConsumerCommiterMiddleware($repository, maxAttempt: 3);
 ```
 
----
-
-## Использование в Laravel
-
-В Laravel-пакете `CommiterServiceProvider` регистрируется автоматически через auto-discovery. Нужно только:
-
-1. Опубликовать конфиг и миграции:
-
-```bash
-php artisan vendor:publish --tag=kafka-bus-commiter
-php artisan migrate
-```
-
-2. Включить middleware в конфиге:
-
-```php
-// config/kafka-bus.php
-'consumers' => [
-    'middleware' => [
-        \Micromus\KafkaBusCommiter\Middleware\ConsumerCommiterMiddleware::class,
-    ],
-],
-
-'producers' => [
-    'middleware' => [
-        \Micromus\KafkaBusCommiter\Middleware\ProducerIdempotencyMiddleware::class,
-    ],
-],
-```
-
-3. Настроить репозиторий в `config/kafka-bus-commiter.php`:
-
-```php
-return [
-    'connection'  => env('KAFKA_COMMITER_CONNECTION'), // null = дефолтное соединение БД
-    'table'       => 'kafka_bus_commits',
-    'repository'  => env('KAFKA_COMMITER_REPOSITORY', 'idempotency'),
-
-    'repositories' => [
-        'idempotency' => \Micromus\KafkaBusCommiter\Repositories\IdempotencyMessageRepository::class,
-        'native'      => \Micromus\KafkaBusCommiter\Repositories\NativeMessageRepository::class,
-    ],
-];
-```
-
-| Значение `repository` | Ключ дедупликации |
-|---|---|
-| `idempotency` | `x-idempotency-key` header + topic name, fallback на msgId |
-| `native` | Только Kafka msgId |

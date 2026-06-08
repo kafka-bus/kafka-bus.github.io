@@ -12,80 +12,77 @@ export default defineConfig({
     logo: '/logo.svg',
 
     nav: [
-      { text: 'Руководство', link: '/guide/quickstart' },
-      { text: 'Ядро', link: '/core/installation' },
-      { text: 'Laravel', link: '/laravel/installation' },
+      { text: 'Docs', link: '/docs/installation' },
       {
-        text: 'Пакеты',
+        text: 'Components',
         items: [
-          { text: 'kafka-bus-messages', link: '/packages/messages' },
-          { text: 'kafka-bus-commiter', link: '/packages/commiter' },
-          { text: 'kafka-bus-outbox', link: '/packages/outbox' },
+          { text: 'Messages', link: '/docs/components/messages' },
+          { text: 'Commiter', link: '/docs/components/commiter' },
         ],
       },
       {
-        text: 'v1.1.1',
+        text: 'Integrations',
         items: [
-          { text: 'Changelog', link: 'https://github.com/micromus/kafka-bus/blob/1.x/CHANGELOG.md' },
-          { text: 'Packagist', link: 'https://packagist.org/packages/micromus/kafka-bus' },
+          { text: 'Laravel', link: '/docs/laravel/installation' },
+        ],
+      },
+      {
+        text: 'v1.x',
+        items: [
+          { text: 'Changelog', link: 'https://github.com/kafka-bus/kafka-bus/blob/1.x/CHANGELOG.md' },
         ],
       },
     ],
 
     sidebar: {
-      '/guide/': [
+      '/docs/': [
+        { text: 'Установка', link: '/docs/installation' },
+        { text: 'Конфигурация', link: '/docs/configuration' },
+        { text: 'Архитектура', link: '/docs/architecture' },
+        { text: 'Топики', link: '/docs/topics' },
+
         {
-          text: 'Начало работы',
+          text: 'Producer',
           items: [
-            { text: 'Быстрый старт', link: '/guide/quickstart' },
+            { text: 'Producing messages', link: '/docs/producer/producing' },
+            { text: 'Configure', link: '/docs/producer/configure' },
+            { text: 'Pipeline', link: '/docs/producer/pipeline' },
           ],
         },
-      ],
 
-      '/core/': [
         {
-          text: 'Ядро (kafka-bus)',
+          text: 'Consumer',
           items: [
-            { text: 'Установка', link: '/core/installation' },
-            { text: 'Конфигурация', link: '/core/configuration' },
-            { text: 'Топики', link: '/core/topics' },
-            { text: 'Producer', link: '/core/producers' },
-            { text: 'Consumer', link: '/core/consumers' },
-            { text: 'Pipeline (Middleware)', link: '/core/pipeline' },
-            { text: 'Тестирование', link: '/core/testing' },
-            { text: 'Архитектура', link: '/core/architecture' },
+            { text: 'Consuming messages', link: '/docs/consumer/consuming' },
+            { text: 'Configure', link: '/docs/consumer/configure' },
+            { text: 'Pipeline', link: '/docs/consumer/pipeline' },
           ],
         },
-      ],
 
-      '/laravel/': [
+        {
+          text: 'Components',
+          items: [
+            { text: 'Messages', link: '/docs/components/messages' },
+            { text: 'Commiter', link: '/docs/components/commiter' },
+          ],
+        },
+
         {
           text: 'Laravel',
           items: [
-            { text: 'Установка', link: '/laravel/installation' },
-            { text: 'Конфигурация', link: '/laravel/configuration' },
-            { text: 'Producer', link: '/laravel/producers' },
-            { text: 'Consumer', link: '/laravel/consumers' },
-            { text: 'Artisan-команды', link: '/laravel/commands' },
-            { text: 'Тестирование', link: '/laravel/testing' },
-          ],
-        },
-      ],
-
-      '/packages/': [
-        {
-          text: 'Дополнительные пакеты',
-          items: [
-            { text: 'Messages', link: '/packages/messages' },
-            { text: 'Commiter', link: '/packages/commiter' },
-            { text: 'Outbox', link: '/packages/outbox' },
+            { text: 'Установка', link: '/docs/laravel/installation' },
+            { text: 'Конфигурация', link: '/docs/laravel/configuration' },
+            { text: 'Producer', link: '/docs/laravel/producers' },
+            { text: 'Consumer', link: '/docs/laravel/consumers' },
+            { text: 'Artisan-команды', link: '/docs/laravel/commands' },
+            { text: 'Тестирование', link: '/docs/laravel/testing' },
           ],
         },
       ],
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/micromus/kafka-bus' },
+      { icon: 'github', link: 'https://github.com/kafka-bus/kafka-bus' },
     ],
 
     footer: {

@@ -1,18 +1,16 @@
-# Тестирование (Laravel)
+# Тестирование
 
 `KafkaBus` Facade поставляется с первоклассным fake, который работает аналогично `Event::fake()` или `Mail::fake()`.
 
 ## Активация фейка
 
 ```php
-use Micromus\KafkaBusLaravel\Facades\KafkaBus;
+use KafkaBus\Laravel\Facades\KafkaBus;
 
 KafkaBus::fake();
 ```
 
 После этого все вызовы через Facade (`publish`, `listen`) перехватываются in-memory фейком. Реальный брокер не используется.
-
----
 
 ## Проверка публикации сообщений
 
@@ -66,8 +64,6 @@ expect($messages[0]->payload)->toContain('"id":1');
 expect($messages[0]->headers)->toHaveKey('x-idempotency-key');
 ```
 
----
-
 ## Тестирование consumer'а
 
 `addMessage()` добавляет `RdKafka\Message` в фейковое соединение, `listen()` запускает полный consumer-конвейер — middleware, маршрутизацию, обработчик, коммит — без реального брокера.
@@ -117,8 +113,6 @@ KafkaBus::listen('products');
 expect(Product::count())->toBe(3);
 ```
 
----
-
 ## Проверка коммитов
 
 После `listen()` каждое успешно обработанное сообщение фиксируется в фейке. Это позволяет проверить, что обработчик отработал и офсет был подтверждён:
@@ -151,38 +145,6 @@ $committed = KafkaBus::getCommitted('products'); // list<ConsumerMessageInterfac
 expect($committed[0]->payload())->toBe('{"id":42}');
 expect($committed[0]->headers())->toHaveKey('x-idempotency-key');
 ```
-
----
-
-## Полный пример теста с Commiter
-
-```php
-use Micromus\KafkaBus\Testing\Consumers\MessageFactory;
-use Micromus\KafkaBusLaravel\Facades\KafkaBus;
-
-it('не обрабатывает дублирующее сообщение', function () {
-    KafkaBus::fake();
-
-    $factory = MessageFactory::for()
-        ->withTopicKey('products')
-        ->withHeaders(['x-idempotency-key' => 'same-key-123']);
-
-    // Первое сообщение
-    KafkaBus::addMessage($factory->make('{"id":1}'));
-    KafkaBus::listen('products');
-    KafkaBus::assertCommittedTimes('products', 1);
-
-    // Дубль с тем же idempotency key
-    KafkaBus::addMessage($factory->make('{"id":1}'));
-    KafkaBus::listen('products');
-
-    // Второе сообщение не должно породить новую запись
-    KafkaBus::assertCommittedTimes('products', 1);
-    expect(Product::count())->toBe(1);
-});
-```
-
----
 
 ## Тестовое окружение (.env.testing)
 

@@ -1,4 +1,4 @@
-# Consumer (Laravel)
+# Consumer
 
 ## Создание обработчика
 
@@ -9,7 +9,7 @@
 
 namespace App\Kafka\Consumers;
 
-use Micromus\KafkaBus\Interfaces\Consumers\Messages\ConsumerMessageInterface;
+use KafkaBus\Core\Interfaces\Consumers\Messages\ConsumerMessageInterface;
 
 class ProductsConsumer
 {
@@ -53,11 +53,11 @@ public function __invoke(\RdKafka\Message $message): void { ... }
 
 ## Обработчик с DomainMessage
 
-При использовании пакета `kafka-bus-messages` добавьте атрибут `#[MessageFactory]`:
+При использовании пакета `kafka-bus/messages` добавьте атрибут `#[MessageFactory]`:
 
 ```php
-use Micromus\KafkaBus\Consumers\Attributes\MessageFactory;
-use Micromus\KafkaBusMessages\Factories\DomainMessageFactory;
+use KafkaBus\Core\Consumers\Attributes\MessageFactory;
+use KafkaBus\Messages\Factories\DomainMessageFactory;
 use App\Kafka\Messages\ProductMessage;
 
 class ProductsConsumer
@@ -139,7 +139,7 @@ php artisan kafka:consume default
     'products' => [
         'middleware' => [
             App\Kafka\Middleware\LoggingMiddleware::class,
-            \Micromus\KafkaBusCommiter\Middleware\ConsumerCommiterMiddleware::class,
+            KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware::class,
         ],
         'handler' => App\Kafka\Consumers\ProductsConsumer::class,
     ],

@@ -32,6 +32,8 @@
 
 ## Топики
 
+В Laravel-пакете физическое имя топика собирается автоматически из `topic_prefix` и значения в `topics`:
+
 ```php
 'topic_prefix' => env('KAFKA_PREFIX', env('APP_ENV', 'local') . '.'),
 
@@ -52,7 +54,7 @@
 
     // Глобальные middleware для всех маршрутов
     'middleware' => [
-        // \Micromus\KafkaBusCommiter\Middleware\ProducerIdempotencyMiddleware::class,
+        // \KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware::class,
     ],
 
     // Маршруты: класс сообщения → ключ топика
@@ -93,7 +95,7 @@
 
     // Глобальные middleware для всех воркеров
     'middleware' => [
-        // \Micromus\KafkaBusCommiter\Middleware\ConsumerCommiterMiddleware::class,
+        // \KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware::class,
     ],
 
     'workers' => [
@@ -154,19 +156,19 @@ global consumers.* → worker entry → per-topic (для multi-topic ворке
 
 ## Все переменные окружения
 
-| Переменная | По умолчанию | Описание |
-|---|---|---|
-| `KAFKA_CONNECTION` | `kafka` | Активное соединение |
-| `KAFKA_BROKER_LIST` | `localhost:9092` | Адреса брокеров |
-| `KAFKA_PREFIX` | `{APP_ENV}.` | Префикс имён топиков |
-| `KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` | Протокол безопасности |
-| `KAFKA_SASL_MECHANISMS` | `PLAIN` | Механизм SASL |
-| `KAFKA_SASL_USERNAME` | — | Логин SASL |
-| `KAFKA_SASL_PASSWORD` | — | Пароль SASL |
-| `KAFKA_DEBUG` | `false` | Отладочные логи rdkafka |
-| `KAFKA_CONSUMER_AUTO_COMMIT` | `false` | Авто-коммит офсетов |
-| `KAFKA_CONSUMER_GROUP_ID` | `{APP_NAME}` | Consumer group |
-| `KAFKA_MAX_POLL_INTERVAL_MS` | `300000` | Макс. интервал между poll |
-| `KAFKA_SESSION_TIMEOUT_MS` | `45000` | Таймаут сессии |
-| `KAFKA_HEARTBEAT_INTERVAL_MS` | `3000` | Интервал heartbeat |
-| `KAFKA_PRODUCER_COMPRESSION_CODEC` | `snappy` | Алгоритм сжатия |
+| Переменная                         | По умолчанию     | Описание                  |
+|------------------------------------|------------------|---------------------------|
+| `KAFKA_CONNECTION`                 | `kafka`          | Активное соединение       |
+| `KAFKA_BROKER_LIST`                | `localhost:9092` | Адреса брокеров           |
+| `KAFKA_PREFIX`                     | `{APP_ENV}.`     | Префикс имён топиков      |
+| `KAFKA_SECURITY_PROTOCOL`          | `SASL_PLAINTEXT` | Протокол безопасности     |
+| `KAFKA_SASL_MECHANISMS`            | `PLAIN`          | Механизм SASL             |
+| `KAFKA_SASL_USERNAME`              | —                | Логин SASL                |
+| `KAFKA_SASL_PASSWORD`              | —                | Пароль SASL               |
+| `KAFKA_DEBUG`                      | `false`          | Отладочные логи rdkafka   |
+| `KAFKA_CONSUMER_AUTO_COMMIT`       | `false`          | Авто-коммит офсетов       |
+| `KAFKA_CONSUMER_GROUP_ID`          | `{APP_NAME}`     | Consumer group            |
+| `KAFKA_MAX_POLL_INTERVAL_MS`       | `300000`         | Макс. интервал между poll |
+| `KAFKA_SESSION_TIMEOUT_MS`         | `45000`          | Таймаут сессии            |
+| `KAFKA_HEARTBEAT_INTERVAL_MS`      | `3000`           | Интервал heartbeat        |
+| `KAFKA_PRODUCER_COMPRESSION_CODEC` | `snappy`         | Алгоритм сжатия           |

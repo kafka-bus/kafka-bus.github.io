@@ -2,12 +2,12 @@
 
 ## Требования
 
-| Зависимость | Версия | Обязательно |
-|---|---|---|
-| PHP | `^8.2` | ✅ |
-| `ext-rdkafka` | любая актуальная | ✅ |
-| Кластер Apache Kafka | `2.x+` | ✅ |
-| `ext-pcntl` | любая | Рекомендуется |
+| Зависимость          | Версия           | Обязательно   |
+|----------------------|------------------|---------------|
+| PHP                  | `^8.2`           | ✅             |
+| `ext-rdkafka`        | любая актуальная | ✅             |
+| Кластер Apache Kafka | `2.x+`           | ✅             |
+| `ext-pcntl`          | любая            | Рекомендуется |
 
 ::: details Как установить ext-rdkafka
 ```bash
@@ -30,7 +30,7 @@ RUN apt-get install -y librdkafka-dev \
 ## Установка пакета
 
 ```bash
-composer require micromus/kafka-bus
+composer require kafka-bus/core
 ```
 
 ## Проверка
@@ -50,11 +50,11 @@ php -r "echo \RdKafka\Conf::class;"
 ::: code-group
 
 ```bash [Laravel]
-composer require micromus/kafka-bus-laravel
+composer require kafka-bus/laravel-bridge
 ```
 
 ```bash [Spiral]
-composer require micromus/kafka-bus-spiral
+composer require kafka-bus/spiral-bridge # В разработке
 ```
 
 :::
@@ -62,23 +62,23 @@ composer require micromus/kafka-bus-spiral
 Для типизированных сообщений:
 
 ```bash
-composer require micromus/kafka-bus-messages
+composer require kafka-bus/messages
 ```
 
 Для идемпотентной обработки:
 
 ```bash
-composer require micromus/kafka-bus-commiter
+composer require kafka-bus/commiter
 ```
 
-Для паттерна Outbox:
+Для паттерна Outbox (в разработке):
 
 ```bash
-composer require micromus/kafka-bus-outbox
+composer require kafka-bus/outbox
 ```
 
 ## Что дальше
 
-- [Конфигурация соединений](/core/configuration)
-- [Регистрация топиков](/core/topics)
-- [Быстрый старт](/guide/quickstart)
+- [Конфигурация соединений](/docs/configuration)
+- [Регистрация топиков](/docs/topics)
+- [Пример использования](https://github.com/kafka-bus/kafka-bus/tree/1.x/examples)

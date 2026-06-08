@@ -2,15 +2,13 @@
 
 ## Обзор команд
 
-| Команда | Описание |
-|---|---|
-| `kafka:consume {worker}` | Запуск длительного consumer-процесса |
-| `kafka:worker:list` | Список воркеров, топиков и обработчиков |
-| `kafka:route:list` | Список маршрутов producer'а |
-| `kafka:offset:show {worker}` | Текущие офсеты воркера |
-| `kafka:offset:set {worker} {topic} {offset}` | Установка офсета |
-
----
+| Команда                                      | Описание                                |
+|----------------------------------------------|-----------------------------------------|
+| `kafka:consume {worker}`                     | Запуск длительного consumer-процесса    |
+| `kafka:worker:list`                          | Список воркеров, топиков и обработчиков |
+| `kafka:route:list`                           | Список маршрутов producer'а             |
+| `kafka:offset:show {worker}`                 | Текущие офсеты воркера                  |
+| `kafka:offset:set {worker} {topic} {offset}` | Установка офсета                        |
 
 ## kafka:consume
 
@@ -25,8 +23,6 @@ php artisan kafka:consume products-secondary
 ::: tip
 Для продакшна оберните команду в Supervisor, чтобы обеспечить автоматический перезапуск при падении.
 :::
-
----
 
 ## kafka:worker:list
 
@@ -48,8 +44,6 @@ php artisan kafka:worker:list
 
 Используйте для быстрой проверки, что все воркеры настроены корректно после изменения конфига.
 
----
-
 ## kafka:route:list
 
 Выводит зарегистрированные маршруты producer'а.
@@ -66,8 +60,6 @@ php artisan kafka:route:list
 | App\Kafka\Messages\OrderMessage          | orders    | production.fact.orders.1   | 1          |
 +------------------------------------------+-----------+----------------------------+------------+
 ```
-
----
 
 ## kafka:offset:show
 
@@ -87,8 +79,6 @@ php artisan kafka:offset:show products
 ```
 
 Полезно для мониторинга лага consumer'а. Лаг = `Max - Current`.
-
----
 
 ## kafka:offset:set
 
