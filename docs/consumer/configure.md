@@ -1,9 +1,9 @@
 # Configure
 
-## Поток потребления
+## Consumption Flow
 
 ```
-Приложение
+Application
     │
     ▼ listener(workerName)
   Bus → Thread → ListenerFactory
@@ -13,28 +13,28 @@
     │
     ▼
   ConsumerStream → Kafka Broker
-    │ ← сообщение
+    │ ← message
     ▼
   Consumer Pipeline
     │
     ▼
-  ConsumerRouter → Route Pipeline → MessageHandler (бизнес-логика)
+  ConsumerRouter → Route Pipeline → MessageHandler (business logic)
 ```
 
-Подробно:
+In detail:
 
-1. Приложение запрашивает слушателя: `Bus::listener('worker-name')`.
-2. `Bus` делегирует в `Thread`, который через `ListenerFactory` создаёт `Listener`.
-3. `Listener` запускает `ConsumerStream` — блокирующий цикл чтения.
-4. Каждое сообщение проходит через Consumer Pipeline.
-5. `ConsumerRouter` находит нужный `MessageHandler` по имени топика.
-6. Сообщение конвертируется через `MessageFactory`.
-7. Передает сообщение в Route Pipeline.
-8. Обработчик выполняет бизнес-логику.
+1. The application requests a listener: `Bus::listener('worker-name')`.
+2. `Bus` delegates to `Thread`, which uses `ListenerFactory` to create a `Listener`.
+3. `Listener` starts `ConsumerStream` — a blocking read loop.
+4. Each message passes through the Consumer Pipeline.
+5. `ConsumerRouter` finds the appropriate `MessageHandler` by topic name.
+6. The message is converted via `MessageFactory`.
+7. The message is passed to the Route Pipeline.
+8. The handler executes the business logic.
 
-## Маршруты
+## Routes
 
-`ConsumerRoutesBuilder` связывает логический ключ топика с обработчиком:
+`ConsumerRoutesBuilder` maps a logical topic key to a handler:
 
 ```php
 use KafkaBus\Core\Consumers\Router\ConsumerRoutesBuilder;
@@ -46,7 +46,7 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-### Маршрут с middleware
+### Route with Middleware
 
 ```php
 use KafkaBus\Core\Consumers\Router\RouteOptions;
@@ -60,9 +60,9 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-## Воркеры
+## Workers
 
-Воркер — именованная конфигурация consumer'а. Один воркер может слушать несколько топиков:
+A worker is a named consumer configuration. A single worker can listen to multiple topics:
 
 ```php
 use KafkaBus\Core\Bus\Listeners\Workers\MemoryWorkerRegistry;
@@ -88,13 +88,13 @@ $workerRegistry = MemoryWorkerRegistry::make()
     ));
 ```
 
-## Опции consumer
+## Consumer Options
 
-| Опция librdkafka        | Описание                  | Рекомендуемое значение  |
-|-------------------------|---------------------------|-------------------------|
-| `group.id`              | Имя consumer group        | Имя вашего сервиса      |
-| `auto.offset.reset`     | Позиция при первом старте | `earliest` или `latest` |
-| `max.poll.interval.ms`  | Макс. время между poll    | `300000`                |
-| `session.timeout.ms`    | Таймаут сессии            | `45000`                 |
-| `heartbeat.interval.ms` | Интервал heartbeat        | `3000`                  |
-| `enable.auto.commit`    | Авто-коммит offset        | `false` (рекомендуется) |
+| librdkafka option       | Description                  | Recommended value       |
+|-------------------------|------------------------------|-------------------------|
+| `group.id`              | Consumer group name          | Your service name       |
+| `auto.offset.reset`     | Position on first start      | `earliest` or `latest`  |
+| `max.poll.interval.ms`  | Max time between polls       | `300000`                |
+| `session.timeout.ms`    | Session timeout              | `45000`                 |
+| `heartbeat.interval.ms` | Heartbeat interval           | `3000`                  |
+| `enable.auto.commit`    | Auto-commit offset           | `false` (recommended)   |

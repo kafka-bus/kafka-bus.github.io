@@ -3,11 +3,11 @@ layout: home
 
 hero:
   name: Kafka Bus
-  text: PHP-клиент для Apache Kafka
-  tagline: Типизированные сообщения, middleware-конвейер и удобное тестирование без лишнего кода
+  text: PHP client for Apache Kafka
+  tagline: Typed messages, middleware pipeline, and convenient testing without boilerplate
   actions:
     - theme: brand
-      text: Быстрый старт
+      text: Quick Start
       link: /docs/core/installation
     - theme: alt
       text: GitHub
@@ -16,25 +16,25 @@ hero:
 features:
   - icon: 🚌
     title: kafka-bus/core
-    details: Ядро экосистемы. Bus-фасад с поддержкой нескольких соединений, маршрутизацией топиков, конвейером middleware и встроенными фейками для тестирования.
+    details: The ecosystem core. A Bus facade with multi-connection support, topic routing, a middleware pipeline, and built-in fakes for testing.
     link: /docs/core/installation
-    linkText: Документация ядра
+    linkText: Core Documentation
 
   - icon: 🟥
     title: kafka-bus/laravel-bridge
-    details: Laravel-интеграция с автодискавери, конфигом из коробки, Artisan-командами для управления воркерами и KafkaBus::fake() для тестов.
+    details: Laravel integration with auto-discovery, out-of-the-box config, Artisan commands for managing workers, and KafkaBus::fake() for tests.
     link: /laravel/installation
-    linkText: Документация Laravel
+    linkText: Laravel Documentation
 
   - icon: 📨
     title: kafka-bus/messages
-    details: Типизированные Payload, JsonMessage и DomainMessage с автоматическим кастингом полей, поддержкой событий create/update/delete и тест-фабриками.
+    details: Typed Payload, JsonMessage, and DomainMessage with automatic field casting, create/update/delete event support, and test factories.
     link: /packages/messages
-    linkText: Документация Messages
+    linkText: Messages Documentation
 
   - icon: ✅
     title: kafka-bus/commiter
-    details: Идемпотентная обработка сообщений через middleware. Отслеживает обработанные сообщения, пропускает дубликаты и ограничивает количество попыток.
+    details: Idempotent message processing via middleware. Tracks processed messages, skips duplicates, and limits the number of retry attempts.
     link: /packages/commiter
-    linkText: Документация Commiter
+    linkText: Commiter Documentation
 ---

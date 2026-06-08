@@ -1,9 +1,9 @@
 # Configure
 
-## Поток публикации
+## Publishing Flow
 
 ```
-Приложение
+Application
     │
     ▼ publish(ProducerMessageInterface)
   Bus
@@ -11,28 +11,28 @@
     │
     ▼
   Publisher
-    │ → PublisherRouter (определяет топик)
+    │ → PublisherRouter (resolves topic)
     │ → Pipeline
     │
     ▼
-  Producer (низкоуровневый)
+  Producer (low-level)
     │
     ▼
   Kafka Broker
 ```
 
-Подробно:
+In detail:
 
-1. Приложение вызывает `Bus::publish($message)`.
-2. `Bus` получает активный `Thread` через `ThreadRegistry`.
-3. `Thread` передаёт их в `Publisher`.
-4. `Publisher` через `PublisherRouter` определяет целевой топик.
-5. Сообщение проходит через Pipeline.
-6. Низкоуровневый `Producer` отправляет сообщение через rdkafka.
+1. The application calls `Bus::publish($message)`.
+2. `Bus` retrieves the active `Thread` via `ThreadRegistry`.
+3. `Thread` passes them to `Publisher`.
+4. `Publisher` resolves the target topic via `PublisherRouter`.
+5. The message passes through the Pipeline.
+6. The low-level `Producer` sends the message via rdkafka.
 
-## Маршруты
+## Routes
 
-`PublisherRoutesBuilder` связывает класс сообщения с логическим ключом топика:
+`PublisherRoutesBuilder` maps a message class to a logical topic key:
 
 ```php
 use KafkaBus\Core\Bus\Publishers\Router\PublisherRoutesBuilder;
@@ -43,9 +43,9 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-### Маршруты с опциями
+### Routes with Options
 
-Для каждого маршрута можно задать индивидуальные опции и middleware:
+Individual options and middleware can be set for each route:
 
 ```php
 use Micromus\KafkaBus\Bus\Publishers\Router\Options;
@@ -66,13 +66,13 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
 
 ## Flush
 
-После отправки сообщений `rdkafka` асинхронно доставляет их в брокер. `flushTimeout` и `flushRetries` контролируют ожидание подтверждения:
+After messages are sent, `rdkafka` delivers them to the broker asynchronously. `flushTimeout` and `flushRetries` control how long to wait for acknowledgement:
 
-| Параметр       | По умолчанию | Описание                    |
-|----------------|--------------|-----------------------------|
-| `flushTimeout` | `5000` мс    | Таймаут одной попытки flush |
-| `flushRetries` | `5`          | Число попыток перед ошибкой |
+| Parameter      | Default   | Description                         |
+|----------------|-----------|-------------------------------------|
+| `flushTimeout` | `5000` ms | Timeout for a single flush attempt  |
+| `flushRetries` | `5`       | Number of attempts before an error  |
 
 ::: warning
-Если процесс завершится до flush, сообщения могут не дойти до брокера. Для критичных сообщений используйте [`kafka-bus/outbox`]).
+If the process exits before flushing, messages may not reach the broker. For critical messages, use [`kafka-bus/outbox`]).
 :::

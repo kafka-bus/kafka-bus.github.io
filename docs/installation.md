@@ -1,15 +1,15 @@
-# Установка
+# Installation
 
-## Требования
+## Requirements
 
-| Зависимость          | Версия           | Обязательно   |
+| Dependency           | Version          | Required      |
 |----------------------|------------------|---------------|
 | PHP                  | `^8.2`           | ✅             |
-| `ext-rdkafka`        | любая актуальная | ✅             |
-| Кластер Apache Kafka | `2.x+`           | ✅             |
-| `ext-pcntl`          | любая            | Рекомендуется |
+| `ext-rdkafka`        | any current      | ✅             |
+| Apache Kafka cluster | `2.x+`           | ✅             |
+| `ext-pcntl`          | any              | Recommended   |
 
-::: details Как установить ext-rdkafka
+::: details How to install ext-rdkafka
 ```bash
 # Ubuntu / Debian
 sudo apt-get install librdkafka-dev
@@ -20,20 +20,20 @@ echo "extension=rdkafka.so" >> /etc/php/8.2/cli/php.ini
 brew install librdkafka
 pecl install rdkafka
 
-# Docker (официальный образ php)
+# Docker (official php image)
 RUN apt-get install -y librdkafka-dev \
     && pecl install rdkafka \
     && docker-php-ext-enable rdkafka
 ```
 :::
 
-## Установка пакета
+## Package Installation
 
 ```bash
 composer require kafka-bus/core
 ```
 
-## Проверка
+## Verification
 
 ```bash
 php -m | grep rdkafka
@@ -43,9 +43,9 @@ php -r "echo \RdKafka\Conf::class;"
 # RdKafka\Conf
 ```
 
-## Дополнительные пакеты
+## Additional Packages
 
-В зависимости от вашего стека можно установить интеграционные пакеты:
+Depending on your stack, you can install integration packages:
 
 ::: code-group
 
@@ -54,31 +54,31 @@ composer require kafka-bus/laravel-bridge
 ```
 
 ```bash [Spiral]
-composer require kafka-bus/spiral-bridge # В разработке
+composer require kafka-bus/spiral-bridge # In development
 ```
 
 :::
 
-Для типизированных сообщений:
+For typed messages:
 
 ```bash
 composer require kafka-bus/messages
 ```
 
-Для идемпотентной обработки:
+For idempotent processing:
 
 ```bash
 composer require kafka-bus/commiter
 ```
 
-Для паттерна Outbox (в разработке):
+For the Outbox pattern (in development):
 
 ```bash
 composer require kafka-bus/outbox
 ```
 
-## Что дальше
+## What's Next
 
-- [Конфигурация соединений](/docs/configuration)
-- [Регистрация топиков](/docs/topics)
-- [Пример использования](https://github.com/kafka-bus/kafka-bus/tree/1.x/examples)
+- [Connection Configuration](/docs/configuration)
+- [Topic Registration](/docs/topics)
+- [Usage Examples](https://github.com/kafka-bus/kafka-bus/tree/1.x/examples)

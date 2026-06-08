@@ -1,8 +1,8 @@
 # Pipeline
 
-## Producer middleware
+## Producer Middleware
 
-### Интерфейс
+### Interface
 
 ```php
 use KafkaBus\Core\Producers\Pipelines\ProducerPipelineMiddleware;
@@ -24,7 +24,7 @@ class HeadersMiddleware implements ProducerPipelineMiddleware
 }
 ```
 
-### Применение на маршрут publisher'а
+### Applying to a Publisher Route
 
 ```php
 use Micromus\KafkaBus\Bus\Publishers\Router\Options;
@@ -40,8 +40,8 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-## Готовые middleware из экосистемы
+## Built-in Middleware from the Ecosystem
 
-| Middleware                      | Пакет                | Описание                                |
-|---------------------------------|----------------------|-----------------------------------------|
-| `ProducerIdempotencyMiddleware` | `kafka-bus-commiter` | Добавляет `x-idempotency-key` заголовок |
+| Middleware                      | Package              | Description                                   |
+|---------------------------------|----------------------|-----------------------------------------------|
+| `ProducerIdempotencyMiddleware` | `kafka-bus-commiter` | Adds `x-idempotency-key` header               |

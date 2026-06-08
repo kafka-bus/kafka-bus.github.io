@@ -1,8 +1,8 @@
 # Consumer
 
-## Создание обработчика
+## Creating a Handler
 
-Создайте класс в `app/Kafka/Consumers/`. Тип аргумента `__invoke` определяет, в каком виде придёт сообщение:
+Create a class in `app/Kafka/Consumers/`. The argument type of `__invoke` determines how the message will be delivered:
 
 ```php
 // app/Kafka/Consumers/ProductsConsumer.php
@@ -18,7 +18,7 @@ class ProductsConsumer
         $payload = json_decode($message->payload(), true);
         $headers = $message->headers();
 
-        // Бизнес-логика
+        // Business logic
         Product::updateOrCreate(
             ['id' => $payload['id']],
             ['name' => $payload['name'], 'status' => $payload['status']],
@@ -27,20 +27,20 @@ class ProductsConsumer
 }
 ```
 
-### Другие варианты типа аргумента
+### Other Argument Type Options
 
 ```php
-// Только payload как строка
+// Payload as a plain string
 public function __invoke(string $payload): void { ... }
 
-// Payload как декодированный JSON-массив
+// Payload as a decoded JSON array
 public function __invoke(array $data): void { ... }
 
-// Оригинальный объект rdkafka (offset, partition, key)
+// Original rdkafka object (offset, partition, key)
 public function __invoke(\RdKafka\Message $message): void { ... }
 ```
 
-## Регистрация в конфиге
+## Registering in Config
 
 ```php
 // config/kafka-bus.php
@@ -51,9 +51,9 @@ public function __invoke(\RdKafka\Message $message): void { ... }
 ],
 ```
 
-## Обработчик с DomainMessage
+## Handler with DomainMessage
 
-При использовании пакета `kafka-bus/messages` добавьте атрибут `#[MessageFactory]`:
+When using the `kafka-bus/messages` package, add the `#[MessageFactory]` attribute:
 
 ```php
 use KafkaBus\Core\Consumers\Attributes\MessageFactory;
@@ -91,15 +91,15 @@ class ProductsConsumer
 }
 ```
 
-## Запуск воркера
+## Starting a Worker
 
 ```bash
 php artisan kafka:consume products
 ```
 
-Команда запускает блокирующий цикл чтения. Для продакшна используйте Supervisor или аналог.
+The command starts a blocking read loop. For production, use Supervisor or an equivalent.
 
-### Supervisor-конфиг
+### Supervisor Config
 
 ```ini
 [program:kafka-products]
@@ -113,9 +113,9 @@ stdout_logfile=/var/www/storage/logs/kafka-products.log
 stderr_logfile=/var/www/storage/logs/kafka-products-err.log
 ```
 
-## Воркер с несколькими топиками
+## Worker with Multiple Topics
 
-Один воркер может слушать несколько топиков одновременно:
+A single worker can listen to multiple topics simultaneously:
 
 ```php
 'workers' => [
@@ -132,7 +132,7 @@ stderr_logfile=/var/www/storage/logs/kafka-products-err.log
 php artisan kafka:consume default
 ```
 
-## Middleware на уровне воркера
+## Worker-level Middleware
 
 ```php
 'workers' => [
@@ -146,7 +146,7 @@ php artisan kafka:consume default
 ],
 ```
 
-## Middleware на уровне топика
+## Topic-level Middleware
 
 ```php
 'workers' => [
@@ -161,16 +161,16 @@ php artisan kafka:consume default
 ],
 ```
 
-## Несколько воркеров для одного топика
+## Multiple Workers for the Same Topic
 
-Когда нужна разная логика обработки одного топика в разных контекстах:
+When you need different processing logic for the same topic in different contexts:
 
 ```php
 'workers' => [
-    // Основной воркер
+    // Primary worker
     'products' => App\Kafka\Consumers\ProductsConsumer::class,
 
-    // Вторичный воркер — другой обработчик для того же топика
+    // Secondary worker — different handler for the same topic
     'products-analytics' => [
         'topic_key' => 'products',
         'handler'   => App\Kafka\Consumers\ProductsAnalyticsConsumer::class,
@@ -179,12 +179,12 @@ php artisan kafka:consume default
 ```
 
 ::: warning
-Каждый воркер должен использовать **отдельный** `group.id`, иначе они будут конкурировать за одни и те же партиции.
+Each worker must use a **separate** `group.id`, otherwise they will compete for the same partitions.
 :::
 
 ```dotenv
-# Для основного воркера
+# For the primary worker
 KAFKA_CONSUMER_GROUP_ID=my-service
 
-# Для аналитического — задайте в коде или отдельном .env
+# For the analytics worker — set in code or a separate .env
 ```

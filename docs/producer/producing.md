@@ -1,10 +1,10 @@
 # Producer
 
-Producer отвечает за отправку сообщений в Kafka. На уровне ядра это `Bus::publish()`, которому передаётся объект, реализующий `ProducerMessageInterface`.
+The producer is responsible for sending messages to Kafka. At the core level this is `Bus::publish()`, which receives an object implementing `ProducerMessageInterface`.
 
 ## ProducerMessage
 
-Базовый класс для исходящих сообщений:
+Base class for outgoing messages:
 
 ```php
 use KafkaBus\Core\Producers\Messages\ProducerMessage;
@@ -12,13 +12,13 @@ use KafkaBus\Core\Producers\Messages\ProducerMessage;
 $bus->publish(new ProducerMessage(
     payload: json_encode(['id' => 1, 'name' => 'Laptop']),
     headers: ['source' => 'catalog-service', 'version' => '1'],
-    key:     '1', // Kafka partition key (опционально)
+    key:     '1', // Kafka partition key (optional)
 ));
 ```
 
-## Собственные классы сообщений
+## Custom Message Classes
 
-Реализуйте `ProducerMessageInterface`, чтобы инкапсулировать логику сериализации:
+Implement `ProducerMessageInterface` to encapsulate serialization logic:
 
 ```php
 use KafkaBus\Core\Interfaces\Producers\Messages\ProducerMessageInterface;
@@ -44,7 +44,7 @@ final readonly class ProductCreatedMessage implements ProducerMessageInterface, 
 
     public function getKey(): ?string
     {
-        return (string) $this->id; // Гарантирует, что все события одного продукта попадут в одну партицию
+        return (string) $this->id; // Ensures all events for the same product go to the same partition
     }
 
     public function getHeaders(): array
@@ -56,9 +56,9 @@ final readonly class ProductCreatedMessage implements ProducerMessageInterface, 
 $bus->publish(new ProductCreatedMessage(1, 'Laptop', 'Electronics'));
 ```
 
-## Batch-публикация
+## Batch Publishing
 
-`Bus::publishBatch()` можно отправить сразу несколько сообщений:
+Use `Bus::publishBatch()` to send multiple messages at once:
 
 ```php
 namespace KafkaBus\Core\Bus\MessageBatch;
@@ -72,7 +72,7 @@ foreach ($products as $product) {
 $bus->publishBatch(MessageBatch::fromArray($messages));
 ```
 
-## Переключение соединения
+## Switching Connections
 
 ```php
 $bus->onConnection('analytics')->publish($message);

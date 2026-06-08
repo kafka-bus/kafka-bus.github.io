@@ -1,12 +1,12 @@
 # Pipeline
 
-В процессе обработки сообщений будет вызвано 2 pipeline:
- - на уровне Consumer (передаётся ConsumerMessageInterface, в частности WorkerConsumerMessage)
- - на уровне Route (передается объект исходя из аргумента Handler)
+During message processing, 2 pipelines are invoked:
+ - at the Consumer level (receives `ConsumerMessageInterface`, specifically `WorkerConsumerMessage`)
+ - at the Route level (receives an object based on the Handler argument type)
 
-## Consumer middleware
+## Consumer Middleware
 
-### Интерфейс
+### Interface
 
 ```php
 use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineMiddleware;
@@ -27,14 +27,14 @@ class LoggingMiddleware implements ConsumerPipelineMiddleware
 
         $elapsed = (hrtime(true) - $start) / 1e6;
         
-        echo "Обработано за {$elapsed}мс: {$message->topicName()}" . PHP_EOL;
+        echo "Processed in {$elapsed}ms: {$message->topicName()}" . PHP_EOL;
         
         return $pipeline;
     }
 }
 ```
 
-### Middleware с обработкой ошибок
+### Middleware with Error Handling
 
 ```php
 class LoggerMiddleware implements ConsumerPipelineMiddleware
@@ -44,8 +44,8 @@ class LoggerMiddleware implements ConsumerPipelineMiddleware
         try {
             return $pipeline->continue();
         } catch (\Throwable $e) {
-            // Логируем ошибку, но не прекращаем работу воркера
-            logger()->error('Ошибка обработки сообщения', [
+            // Log the error without stopping the worker
+            logger()->error('Message processing error', [
                 'topic'   => $message->topicName(),
                 'payload' => $message->payload(),
                 'error'   => $e->getMessage(),
@@ -58,12 +58,12 @@ class LoggerMiddleware implements ConsumerPipelineMiddleware
 ```
 
 ::: tip
-Игнорируя Exception, воркер продолжит обработку следующего сообщения и сообщения будут закомичены в Apache Kafka.
+By swallowing the exception, the worker continues processing the next message and messages will be committed to Apache Kafka.
 :::
 
-### Применение
+### Applying
 
-Middleware применяется ко всем топикам воркера:
+Middleware is applied to all topics in the worker:
 
 ```php
 use KafkaBus\Core\Bus\Listeners\Workers\Options;
@@ -81,11 +81,11 @@ $workerRegistry = MemoryWorkerRegistry::make()
     ));
 ```
 
-## Route middleware
+## Route Middleware
 
-### Интерфейс
+### Interface
 
-Допустим есть обработчик заказов OrderHandler:
+Suppose there is an order handler `OrderHandler`:
 
 ```php
 class OrderHandler
@@ -93,7 +93,7 @@ class OrderHandler
     #[MessageFactory(new DomainMessageFactory(OrderMessage::class))]
     public function __invoke(OrderMessage $order): void
     {
-        // Логика обработки заказов
+        // Order processing logic
     }
 }
 ```
@@ -112,16 +112,16 @@ class CheckingMiddleware implements MessagePipelineMiddleware
     {
         $message = $pipeline->handler()->target(); // OrderMessage
         
-        // Что то
+        // Something
         
         return $pipeline->continue();
     }
 }
 ```
 
-### Применение
+### Applying
 
-Middleware применяется только к конкретному топику:
+Middleware is applied only to a specific topic:
 
 ```php
 use Micromus\KafkaBus\Consumers\Router\RouteInfo;
@@ -138,21 +138,21 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-## Порядок выполнения
+## Execution Order
 
-Middleware выполняются в порядке добавления. Для consumer:
+Middleware executes in the order it was added. For a consumer:
 
 ```
-[воркер middleware] → [маршрут middleware] → [handler]
-LoggingMiddleware   → CheckingMiddleware   → OrderHandler
+[worker middleware] → [route middleware] → [handler]
+LoggingMiddleware   → CheckingMiddleware → OrderHandler
 ```
 
-## Готовые middleware из экосистемы
+## Built-in Middleware from the Ecosystem
 
-| Middleware                      | Пакет                | Описание                                |
+| Middleware                      | Package              | Description                             |
 |---------------------------------|----------------------|-----------------------------------------|
-| `ConsumerCommiterMiddleware`    | `kafka-bus/commiter` | Идемпотентность, защита от дублей       |
+| `ConsumerCommiterMiddleware`    | `kafka-bus/commiter` | Idempotency, duplicate protection       |
 
 ::: tip
-Подробнее о `ConsumerCommiterMiddleware` — в разделе [Commiter](/docs/components/commiter).
+Learn more about `ConsumerCommiterMiddleware` in the [Commiter](/docs/components/commiter) section.
 :::

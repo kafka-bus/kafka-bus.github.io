@@ -1,12 +1,12 @@
 # Consumer
 
-Consumer читает сообщения из Kafka и передаёт их в обработчики. Точка входа — `Bus::listener(string $workerName)`, который возвращает слушателя с блокирующим методом `listen()`.
+The consumer reads messages from Kafka and passes them to handlers. The entry point is `Bus::listener(string $workerName)`, which returns a listener with a blocking `listen()` method.
 
-## Обработчики сообщений
+## Message Handlers
 
-Пакет автоматически определяет тип аргумента обработчика и передаёт нужное представление сообщения. Обработчик — это любой callable: класс с `__invoke`, замыкание или метод.
+The package automatically resolves the handler argument type and passes the appropriate message representation. A handler is any callable: a class with `__invoke`, a closure, or a method.
 
-### ConsumerMessageInterface — полный доступ к сообщению
+### ConsumerMessageInterface — full message access
 
 ```php
 use KafkaBus\Core\Interfaces\Consumers\Messages\ConsumerMessageInterface;
@@ -15,42 +15,42 @@ class ProductHandler
 {
     public function __invoke(ConsumerMessageInterface $message): void
     {
-        $payload = $message->payload();   // строка из Kafka
-        $headers = $message->headers();   // массив заголовков
-        $topic   = $message->topicName(); // имя топика
+        $payload = $message->payload();   // raw string from Kafka
+        $headers = $message->headers();   // headers array
+        $topic   = $message->topicName(); // topic name
     }
 }
 ```
 
-### string — только payload
+### string — payload only
 
 ```php
 class ProductHandler
 {
     public function __invoke(string $payload): void
     {
-        // $payload — raw строка из Kafka (например, JSON)
+        // $payload — raw string from Kafka (e.g. JSON)
         $data = json_decode($payload, true);
     }
 }
 ```
 
-### array — payload как декодированный JSON
+### array — payload as decoded JSON
 
 ```php
 class ProductHandler
 {
     public function __invoke(array $data): void
     {
-        // $data — результат json_decode(payload, true)
+        // $data — result of json_decode(payload, true)
         echo $data['id'];
     }
 }
 ```
 
-### RdKafka\Message — оригинальный объект rdkafka
+### RdKafka\Message — original rdkafka object
 
-Когда нужен доступ к низкоуровневым метаданным: offset, partition, timestamp:
+When you need access to low-level metadata: offset, partition, timestamp:
 
 ```php
 use RdKafka\Message;
@@ -60,15 +60,15 @@ class ProductHandler
     public function __invoke(Message $message): void
     {
         echo $message->key;       // Kafka partition key
-        echo $message->offset;    // текущий offset
-        echo $message->partition; // номер партиции
+        echo $message->offset;    // current offset
+        echo $message->partition; // partition number
     }
 }
 ```
 
-## Кастомная фабрика сообщений
+## Custom Message Factory
 
-Атрибут `#[MessageFactory]` позволяет управлять десериализацией payload до передачи в обработчик. Это ключевая точка интеграции с [`kafka-bus-messages`](/packages/messages):
+The `#[MessageFactory]` attribute lets you control payload deserialization before it reaches the handler. This is the key integration point with [`kafka-bus-messages`](/packages/messages):
 
 ```php
 use KafkaBus\Core\Consumers\Attributes\MessageFactory;
@@ -79,12 +79,12 @@ class ProductHandler
     #[MessageFactory(new JsonMessageFactory())]
     public function __invoke(array $data): void
     {
-        // $data — гарантированно декодированный JSON
+        // $data — guaranteed to be decoded JSON
     }
 }
 ```
 
-Для типизированных доменных сообщений из пакета `kafka-bus/messages`:
+For typed domain messages from the `kafka-bus/messages` package:
 
 ```php
 use KafkaBus\Messages\Factories\DomainMessageFactory;
@@ -95,19 +95,19 @@ class ProductHandler
     public function __invoke(ProductMessage $message): void
     {
         echo $message->getEvent()->value; // 'create' | 'update' | 'delete'
-        echo $message->name;         // типизированное поле
+        echo $message->name;         // typed field
     }
 }
 ```
 
-## Запуск слушателя
+## Starting the Listener
 
 ```php
 $listener = $bus->listener('default');
-$listener->listen(); // блокирующий цикл
+$listener->listen(); // blocking loop
 ```
 
-### Корректная остановка через сигналы
+### Graceful Shutdown via Signals
 
 ```php
 pcntl_async_signals(true);

@@ -1,8 +1,8 @@
-# Топики
+# Topics
 
-`TopicRegistry` — реестр, который связывает короткий логический ключ (например `products`) с реальным именем топика в Kafka (`production.fact.products.1`). Все компоненты — producer, consumer, commiter — работают с логическими ключами, а не с физическими именами.
+`TopicRegistry` is a registry that maps a short logical key (e.g. `products`) to the real topic name in Kafka (`production.fact.products.1`). All components — producer, consumer, commiter — work with logical keys rather than physical names.
 
-## Регистрация топиков
+## Registering Topics
 
 ```php
 use KafkaBus\Core\Topics\Topic;
@@ -14,31 +14,31 @@ $topicRegistry = (new TopicRegistry())
     ->add(new Topic('production.fact.users.1',    'users'));
 ```
 
-Конструктор `Topic` принимает два аргумента:
+The `Topic` constructor accepts two arguments:
 
 ```php
 new Topic(
-    name: 'production.fact.products.1', // физическое имя в Kafka
-    key: 'products',                    // логический ключ внутри приложения
+    name: 'production.fact.products.1', // physical name in Kafka
+    key: 'products',                    // logical key within the application
 )
 ```
 
-## Соглашение об именовании
+## Naming Convention
 
-Рекомендуемый формат физического имени топика:
+Recommended format for physical topic names:
 
 ```
 {env}.{domain}.{entity}.{version}
 ```
 
-| Сегмент   | Пример                     | Описание      |
-|-----------|----------------------------|---------------|
-| `env`     | `production`, `staging`    | Среда запуска |
-| `domain`  | `fact`, `event`, `command` | Тип данных    |
-| `entity`  | `products`, `orders`       | Сущность      |
-| `version` | `1`, `2`                   | Версия схемы  |
+| Segment   | Example                    | Description     |
+|-----------|----------------------------|-----------------|
+| `env`     | `production`, `staging`    | Runtime environment |
+| `domain`  | `fact`, `event`, `command` | Data type       |
+| `entity`  | `products`, `orders`       | Entity          |
+| `version` | `1`, `2`                   | Schema version  |
 
-Примеры хороших имён:
+Examples of good names:
 
 ```
 production.fact.products.1
@@ -46,18 +46,18 @@ staging.event.order-created.1
 local.command.send-email.1
 ```
 
-::: warning Версионирование топиков
-При несовместимом изменении схемы сообщения создавайте новый топик с версией `2`, а не меняйте существующий. Это позволит мигрировать потребителей постепенно.
+::: warning Topic Versioning
+When making a breaking schema change, create a new topic with version `2` instead of modifying the existing one. This allows consumers to migrate gradually.
 :::
 
-## Использование в маршрутах
+## Using in Routes
 
-`TopicRegistry` передаётся в билдеры маршрутов — это единая точка истины для всего приложения:
+`TopicRegistry` is passed to route builders — it is the single source of truth for the entire application:
 
 ```php
 // Consumer routes
 $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
-    ->add(new RouteInfo('products', new ProductHandler())) // 'products' — логический ключ
+    ->add(new RouteInfo('products', new ProductHandler())) // 'products' — logical key
     ->build();
 
 // Publisher routes

@@ -1,8 +1,8 @@
-# Тестирование
+# Testing
 
-`KafkaBus` Facade поставляется с первоклассным fake, который работает аналогично `Event::fake()` или `Mail::fake()`.
+The `KafkaBus` Facade ships with a first-class fake that works similarly to `Event::fake()` or `Mail::fake()`.
 
-## Активация фейка
+## Activating the Fake
 
 ```php
 use KafkaBus\Laravel\Facades\KafkaBus;
@@ -10,14 +10,14 @@ use KafkaBus\Laravel\Facades\KafkaBus;
 KafkaBus::fake();
 ```
 
-После этого все вызовы через Facade (`publish`, `listen`) перехватываются in-memory фейком. Реальный брокер не используется.
+After this, all calls via the Facade (`publish`, `listen`) are intercepted by an in-memory fake. The real broker is not used.
 
-## Проверка публикации сообщений
+## Asserting Published Messages
 
-### Базовая проверка
+### Basic Assertion
 
 ```php
-it('публикует сообщение при создании продукта', function () {
+it('publishes a message when a product is created', function () {
     KafkaBus::fake();
 
     app(CreateProductAction::class)->execute(id: 1, name: 'Laptop');
@@ -26,9 +26,9 @@ it('публикует сообщение при создании продукт
 });
 ```
 
-### Проверка с условием
+### Assertion with a Condition
 
-Callback получает `ProducerMessage` после полного прохождения middleware-конвейера (включая сериализацию payload и добавление заголовков):
+The callback receives a `ProducerMessage` after it has passed through the full middleware pipeline (including payload serialization and header injection):
 
 ```php
 KafkaBus::assertPublished(
@@ -38,37 +38,37 @@ KafkaBus::assertPublished(
 );
 ```
 
-### Проверка количества
+### Asserting Count
 
 ```php
 KafkaBus::assertPublishedTimes(ProductMessage::class, 3);
 ```
 
-### Проверка отсутствия публикации
+### Asserting Nothing Was Published
 
 ```php
 KafkaBus::assertNotPublished(ProductMessage::class);
 KafkaBus::assertNothingPublished();
 ```
 
-### Получение опубликованных сообщений
+### Retrieving Published Messages
 
 ```php
-// Все сообщения одного типа (после middleware, с payload и headers)
+// All messages of a given type (post-middleware, with payload and headers)
 $messages = KafkaBus::getPublished(ProductMessage::class);
 
-// Все опубликованные сообщения
+// All published messages
 $all = KafkaBus::allPublished();
 
 expect($messages[0]->payload)->toContain('"id":1');
 expect($messages[0]->headers)->toHaveKey('x-idempotency-key');
 ```
 
-## Тестирование consumer'а
+## Testing a Consumer
 
-`addMessage()` добавляет `RdKafka\Message` в фейковое соединение, `listen()` запускает полный consumer-конвейер — middleware, маршрутизацию, обработчик, коммит — без реального брокера.
+`addMessage()` adds an `RdKafka\Message` to the fake connection, and `listen()` runs the full consumer pipeline — middleware, routing, handler, commit — without a real broker.
 
-### Создание тестового сообщения
+### Creating a Test Message
 
 ```php
 use Micromus\KafkaBus\Testing\Consumers\MessageFactory;
@@ -79,10 +79,10 @@ $message = MessageFactory::for()
     ->make('{"id":42,"name":"Laptop"}');
 ```
 
-### Полный тест consumer'а
+### Full Consumer Test
 
 ```php
-it('сохраняет продукт при получении сообщения', function () {
+it('saves a product when a message is received', function () {
     KafkaBus::fake();
 
     KafkaBus::addMessage(
@@ -99,7 +99,7 @@ it('сохраняет продукт при получении сообщени
 });
 ```
 
-### Несколько сообщений
+### Multiple Messages
 
 ```php
 $factory = MessageFactory::for()->withTopicKey('products');
@@ -113,31 +113,31 @@ KafkaBus::listen('products');
 expect(Product::count())->toBe(3);
 ```
 
-## Проверка коммитов
+## Asserting Commits
 
-После `listen()` каждое успешно обработанное сообщение фиксируется в фейке. Это позволяет проверить, что обработчик отработал и офсет был подтверждён:
+After `listen()`, every successfully processed message is recorded in the fake. This lets you verify that the handler ran and the offset was acknowledged:
 
 ```php
 KafkaBus::listen('products');
 
-// Хотя бы одно сообщение закоммичено
+// At least one message was committed
 KafkaBus::assertCommitted('products');
 
-// Проверка с условием
+// Assertion with a condition
 KafkaBus::assertCommitted(
     'products',
     fn($msg) => $msg->payload() === '{"id":1}'
              && $msg->headers()['x-idempotency-key'] === 'prod-42'
 );
 
-// Точное количество
+// Exact count
 KafkaBus::assertCommittedTimes('products', 2);
 
-// Ничего не закоммичено (например, до вызова listen)
+// Nothing committed (e.g. before calling listen)
 KafkaBus::assertNothingCommitted();
 ```
 
-### Получение закоммиченных сообщений
+### Retrieving Committed Messages
 
 ```php
 $committed = KafkaBus::getCommitted('products'); // list<ConsumerMessageInterface>
@@ -146,9 +146,9 @@ expect($committed[0]->payload())->toBe('{"id":42}');
 expect($committed[0]->headers())->toHaveKey('x-idempotency-key');
 ```
 
-## Тестовое окружение (.env.testing)
+## Test Environment (.env.testing)
 
-Настройте `null`-соединение для запуска тестов без брокера:
+Configure a `null` connection to run tests without a broker:
 
 ```dotenv
 # .env.testing
@@ -165,4 +165,4 @@ KAFKA_CONNECTION=testing
 ],
 ```
 
-При `KafkaBus::fake()` соединение не важно — фейк перехватывает вызовы раньше. `null`-драйвер полезен, когда фейк не активирован, но тесты всё равно не должны ходить в реальный Kafka.
+With `KafkaBus::fake()`, the connection does not matter — the fake intercepts calls before they reach it. The `null` driver is useful when the fake is not activated but tests still must not connect to a real Kafka.

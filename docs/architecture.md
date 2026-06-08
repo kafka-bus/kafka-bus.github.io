@@ -1,40 +1,40 @@
-# Архитектура
+# Architecture
 
-## Ключевые концепции
+## Key Concepts
 
-| Концепция      | Класс                   | Описание                                                             |
-|----------------|-------------------------|----------------------------------------------------------------------|
-| **Bus**        | `Micromus\KafkaBus\Bus` | Центральный фасад. Единая точка входа для публикации и прослушивания |
-| **Connection** | `ConnectionInterface`   | Настроенное подключение к кластеру Kafka                             |
-| **Thread**     | `ThreadInterface`       | Логическая обёртка над соединением, содержит Publisher и Listener    |
-| **Publisher**  | `PublisherInterface`    | Высокоуровневая абстракция для отправки сообщений                    |
-| **Producer**   | `ProducerInterface`     | Низкоуровневый компонент, взаимодействующий с rdkafka                |
-| **Listener**   | `ListenerInterface`     | Высокоуровневая абстракция для прослушивания топиков                 |
-| **Consumer**   | `ConsumerInterface`     | Низкоуровневый компонент чтения из rdkafka                           |
-| **Topic**      | `Topic`                 | Именованный канал в Kafka с логическим ключом                        |
-| **Pipeline**   | `PipelineInterface`     | Middleware-конвейер для входящих и исходящих сообщений               |
+| Concept        | Class                   | Description                                                              |
+|----------------|-------------------------|--------------------------------------------------------------------------|
+| **Bus**        | `Micromus\KafkaBus\Bus` | Central facade. Single entry point for publishing and listening           |
+| **Connection** | `ConnectionInterface`   | A configured connection to a Kafka cluster                               |
+| **Thread**     | `ThreadInterface`       | Logical wrapper over a connection, contains Publisher and Listener       |
+| **Publisher**  | `PublisherInterface`    | High-level abstraction for sending messages                              |
+| **Producer**   | `ProducerInterface`     | Low-level component interacting with rdkafka                             |
+| **Listener**   | `ListenerInterface`     | High-level abstraction for listening to topics                           |
+| **Consumer**   | `ConsumerInterface`     | Low-level rdkafka read component                                         |
+| **Topic**      | `Topic`                 | A named channel in Kafka with a logical key                              |
+| **Pipeline**   | `PipelineInterface`     | Middleware pipeline for incoming and outgoing messages                   |
 
-## Структура директорий
+## Directory Structure
 
 ```
 src/
-├── Bus/              # Фасад Bus, Thread, ThreadRegistry, ThreadFactory
+├── Bus/              # Bus facade, Thread, ThreadRegistry, ThreadFactory
 │   ├── Listeners/    # ListenerFactory, Workers (Worker, MemoryWorkerRegistry, Options)
 │   └── Publishers/   # PublisherFactory, Router (PublisherRoutesBuilder, Options)
-├── Connections/      # Соединения: KafkaConnection, NullConnection, ConnectionRegistry
-├── Consumers/        # Чтение: ConsumerStream, Router, Handlers, Attributes
-├── Producers/        # Запись: ProducerStream, Messages
-├── Interfaces/       # Контракты для всех ключевых компонентов
-├── Pipelines/        # Механизм конвейерной обработки
+├── Connections/      # Connections: KafkaConnection, NullConnection, ConnectionRegistry
+├── Consumers/        # Reading: ConsumerStream, Router, Handlers, Attributes
+├── Producers/        # Writing: ProducerStream, Messages
+├── Interfaces/       # Contracts for all key components
+├── Pipelines/        # Pipeline processing mechanism
 ├── Topics/           # Topic, TopicRegistry
 ├── Testing/          # ProducerFaker, ConsumerFaker, MessageFactory
-├── Exceptions/       # Иерархия исключений
-└── Support/          # Вспомогательные классы
+├── Exceptions/       # Exception hierarchy
+└── Support/          # Helper classes
 ```
 
-## Соединения и потоки
+## Connections and Threads
 
-`Bus` поддерживает несколько именованных соединений. Каждое соединение живёт в своём `Thread`:
+`Bus` supports multiple named connections. Each connection lives in its own `Thread`:
 
 ```
 Bus
@@ -46,19 +46,19 @@ Bus
     └── Listener
 ```
 
-`Thread` — не реальный OS-поток, а логическая обёртка над соединением.
+`Thread` is not a real OS thread — it is a logical wrapper over a connection.
 
 
 ## Pipeline (Middleware)
 
-Пакет реализует паттерн Middleware через конвейер (`Pipeline`). Middleware можно добавлять на трёх уровнях: глобально для воркера, для конкретного маршрута топика, и для маршрута producer'а.
+The package implements the Middleware pattern via a pipeline (`Pipeline`). Middleware can be added at three levels: globally for a worker, for a specific topic route, and for a producer route.
 
-## Как работает конвейер
+## How the Pipeline Works
 
-Каждое входящее или исходящее сообщение проходит через цепочку middleware по порядку. Каждый middleware получает сообщение `PipelineInterface`, который передаёт управление следующему звену:
+Every incoming or outgoing message passes through the middleware chain in order. Each middleware receives a `PipelineInterface` and passes control to the next link:
 
 ```
-сообщение → Middleware1 → Middleware2 → Middleware3 → Handler
-                                                          ↓
-           Middleware1 ← Middleware2 ← Middleware3 ← ответ
+message → Middleware1 → Middleware2 → Middleware3 → Handler
+                                                        ↓
+          Middleware1 ← Middleware2 ← Middleware3 ← response
 ```

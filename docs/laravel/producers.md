@@ -1,8 +1,8 @@
 # Producer
 
-## Создание класса сообщения
+## Creating a Message Class
 
-Создайте класс в `app/Kafka/Messages/` и зарегистрируйте его в конфиге:
+Create a class in `app/Kafka/Messages/` and register it in the config:
 
 ```php
 // app/Kafka/Messages/ProductMessage.php
@@ -30,14 +30,14 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasHead
         ]);
     }
 
-    // Передаётся если использовать интерфейс HasKey
+    // Provided when implementing the HasKey interface
     public function getKey(): ?string
     {
-        // Kafka partition key — все события одного продукта попадут в одну партицию
+        // Kafka partition key — all events for the same product go to the same partition
         return (string) $this->id;
     }
 
-    // Передаётся если использовать интерфейс HasHeaders
+    // Provided when implementing the HasHeaders interface
     public function getHeaders(): array
     {
         return ['event' => 'product.updated'];
@@ -45,7 +45,7 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasHead
 }
 ```
 
-Зарегистрируйте в конфиге:
+Register in the config:
 
 ```php
 // config/kafka-bus.php
@@ -56,7 +56,7 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasHead
 ],
 ```
 
-## Публикация через Facade
+## Publishing via Facade
 
 ```php
 use Micromus\KafkaBusLaravel\Facades\KafkaBus;
@@ -68,9 +68,9 @@ KafkaBus::publish(new ProductMessage(
 ));
 ```
 
-## Публикация через Dependency Injection
+## Publishing via Dependency Injection
 
-Рекомендуется для Action/Service-классов — упрощает тестирование:
+Recommended for Action/Service classes — makes testing easier:
 
 ```php
 use Micromus\KafkaBus\Interfaces\Bus\BusInterface;
@@ -94,24 +94,24 @@ class UpdateProductAction
 }
 ```
 
-## Публикация через другое соединение
+## Publishing via Another Connection
 
 ```php
 KafkaBus::onConnection('analytics')->publish($message);
 
-// Или через DI
+// Or via DI
 $this->bus->onConnection('analytics')->publish($message);
 ```
 
-## Интеграция с kafka-bus/messages
+## Integration with kafka-bus/messages
 
-Если установлен пакет `kafka-bus/messages`, используйте `DomainMessage` для структурированных событий:
+If the `kafka-bus/messages` package is installed, use `DomainMessage` for structured events:
 
 ```php
 use Micromus\KafkaBusMessages\DomainMessage;
 use Micromus\KafkaBusMessages\DomainEventEnum;
 
-// В обработчике события
+// In an event handler
 $message = new ProductMessage(
     attributes: $product->toArray(),
     event: DomainEventEnum::Update,
@@ -121,7 +121,7 @@ $message = new ProductMessage(
 KafkaBus::publish($message);
 ```
 
-Payload будет выглядеть так:
+The payload will look like:
 
 ```json
 {
@@ -131,11 +131,11 @@ Payload будет выглядеть так:
 }
 ```
 
-Подробнее о сообщениях — в разделе [Messages](/docs/components/messages).
+Learn more about messages in the [Messages](/docs/components/messages) section.
 
-## Добавление idempotency key
+## Adding an Idempotency Key
 
-Для гарантированной однократной обработки на стороне consumer'а реализуйте `HasIdempotency`:
+For guaranteed single processing on the consumer side, implement `HasIdempotency`:
 
 ```php
 use Micromus\KafkaBusCommiter\Interfaces\HasIdempotency;
@@ -149,7 +149,7 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasIdem
 }
 ```
 
-И включите middleware в конфиге:
+And enable the middleware in the config:
 
 ```php
 'producers' => [
@@ -159,4 +159,4 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasIdem
 ],
 ```
 
-Подробнее — в разделе [Commiter](/docs/components/commiter).
+Learn more in the [Commiter](/docs/components/commiter) section.

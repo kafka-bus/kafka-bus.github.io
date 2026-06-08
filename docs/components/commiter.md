@@ -1,29 +1,29 @@
 # Commiter
 
-Middleware-пакет для [kafka-bus](https://github.com/kafka-bus/kafka-bus), обеспечивающий идемпотентную обработку сообщений: отслеживает обработанные сообщения, предотвращает дублирование и ограничивает количество попыток обработки.
+A middleware package for [kafka-bus](https://github.com/kafka-bus/kafka-bus) that provides idempotent message processing: tracks processed messages, prevents duplicates, and limits the number of processing attempts.
 
-## Установка
+## Installation
 
 ```bash
 composer require kafka-bus/commiter
 ```
 
-## Как работает
+## How It Works
 
-`ConsumerCommiterMiddleware` встраивается в consumer-конвейер и обрабатывает четыре сценария:
+`ConsumerCommiterMiddleware` is embedded in the consumer pipeline and handles four scenarios:
 
-| Сценарий                                        | Действие                                        |
-|-------------------------------------------------|-------------------------------------------------|
-| Сообщение уже обработано (`commitedAt != null`) | Логирует предупреждение, останавливает конвейер |
-| Превышено `maxAttempt`                          | Логирует ошибку, останавливает конвейер         |
-| Сообщение обработано успешно                    | Вызывает `commit()`, фиксирует как обработанное |
-| Обработчик выбросил исключение                  | Вызывает `failed()`, перебрасывает исключение   |
+| Scenario                                          | Action                                          |
+|---------------------------------------------------|-------------------------------------------------|
+| Message already processed (`commitedAt != null`)  | Logs a warning, stops the pipeline              |
+| `maxAttempt` exceeded                             | Logs an error, stops the pipeline               |
+| Message processed successfully                    | Calls `commit()`, marks as processed            |
+| Handler threw an exception                        | Calls `failed()`, rethrows the exception        |
 
-## Базовое использование
+## Basic Usage
 
-### 1. Реализуйте хранилище
+### 1. Implement the Repository
 
-Необходимо реализовать `RepositorySourceInterface` для хранения состояния сообщений (БД, Redis и т.д.):
+Implement `RepositorySourceInterface` to store message state (DB, Redis, etc.):
 
 ```php
 use KafkaBus\Commiter\Attempt;
@@ -32,8 +32,8 @@ use KafkaBus\Commiter\Interfaces\RepositorySourceInterface;
 class DatabaseRepositorySource implements RepositorySourceInterface
 {
     /**
-     * Возвращает текущее состояние ключа.
-     * Null — сообщение ещё не встречалось.
+     * Returns the current state of the key.
+     * Null means the message has not been seen before.
      */
     public function get(string $key): ?Attempt
     {
@@ -50,7 +50,7 @@ class DatabaseRepositorySource implements RepositorySourceInterface
     }
 
     /**
-     * Увеличивает счётчик неудачных попыток.
+     * Increments the failed attempt counter.
      */
     public function increment(string $key): void
     {
@@ -62,7 +62,7 @@ class DatabaseRepositorySource implements RepositorySourceInterface
     }
 
     /**
-     * Помечает ключ как успешно обработанный.
+     * Marks the key as successfully processed.
      */
     public function commit(string $key): void
     {
@@ -75,7 +75,7 @@ class DatabaseRepositorySource implements RepositorySourceInterface
 }
 ```
 
-### 2. Подключите middleware
+### 2. Attach the Middleware
 
 ```php
 use KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware;
@@ -92,43 +92,43 @@ $workerRegistry = MemoryWorkerRegistry::make()
                 new ConsumerCommiterMiddleware(
                     repository: $repository,
                     logger:     new NullLogger(),  // PSR-3
-                    maxAttempt: 3,           // -1 = без ограничений
+                    maxAttempt: 3,           // -1 = unlimited
                 )
             ]
         )
     ));
 ```
 
-### Параметры middleware
+### Middleware Parameters
 
-| Параметр     | Тип                         | По умолчанию | Описание                                 |
+| Parameter    | Type                        | Default      | Description                              |
 |--------------|-----------------------------|--------------|------------------------------------------|
-| `repository` | `RepositorySourceInterface` | —            | Хранилище состояния                      |
-| `logger`     | `LoggerInterface`           | `NullLogger` | PSR-3 совместимый логгер                 |
-| `maxAttempt` | `int`                       | `-1`         | Максимум попыток. `-1` — без ограничений |
+| `repository` | `RepositorySourceInterface` | —            | State storage                            |
+| `logger`     | `LoggerInterface`           | `NullLogger` | PSR-3 compatible logger                  |
+| `maxAttempt` | `int`                       | `-1`         | Max attempts. `-1` — unlimited           |
 
 ## Idempotency Keys
 
-По умолчанию ключом дедупликации служит `msgId()` Kafka — комбинация топика, партиции и офсета. Это работает при условии, что одно физическое сообщение не появится с другим офсетом.
+By default, the deduplication key is Kafka's `msgId()` — a combination of topic, partition, and offset. This works as long as the same physical message never appears with a different offset.
 
-**Проблема:** при ретраях, повторных отправках или cross-cluster mirroring то же логическое событие может прийти с другим `msgId()` и пройти мимо проверки.
+**Problem:** with retries, re-sends, or cross-cluster mirroring, the same logical event may arrive with a different `msgId()` and bypass the check.
 
-**Решение:** idempotency key — стабильный идентификатор, который producer добавляет в заголовок `x-idempotency-key`. Consumer использует его вместо `msgId()`.
+**Solution:** an idempotency key — a stable identifier that the producer adds to the `x-idempotency-key` header. The consumer uses it instead of `msgId()`.
 
-### Выбор хорошего ключа
+### Choosing a Good Key
 
-✅ Хорошие варианты:
-- `order-42-v3` (aggregate id + версия)
-- id строки из outbox-таблицы
-- любое значение, которое upstream считает уникальным для события
+✅ Good options:
+- `order-42-v3` (aggregate id + version)
+- an outbox table row id
+- any value the upstream considers unique for the event
 
-❌ Плохие варианты:
-- timestamp (меняется при ретрае)
-- случайный UUID, генерируемый при каждой отправке
+❌ Bad options:
+- timestamp (changes on retry)
+- a random UUID generated on every send
 
 ## ProducerIdempotencyMiddleware
 
-### Реализуйте HasIdempotency на сообщении
+### Implement HasIdempotency on the Message
 
 ```php
 use KafkaBus\Core\Interfaces\Producers\Messages\ProducerMessageInterface;
@@ -148,12 +148,12 @@ final readonly class ProductCreatedMessage implements ProducerMessageInterface, 
 
     public function getIdempotencyKey(): string
     {
-        return $this->productId; // стабильный ключ
+        return $this->productId; // stable key
     }
 }
 ```
 
-### Подключите middleware в маршрут publisher'а
+### Attach the Middleware to the Publisher Route
 
 ```php
 use KafkaBus\Core\Bus\Publishers\Router\Options;
@@ -170,13 +170,13 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-Middleware добавит заголовок `x-idempotency-key` к каждому исходящему сообщению. Если сообщение не реализует `HasIdempotency`, заголовок не добавляется.
+The middleware adds the `x-idempotency-key` header to every outgoing message. If the message does not implement `HasIdempotency`, the header is not added.
 
 ## IdempotencyMessageRepository
 
-На стороне consumer'а `IdempotencyMessageRepository` читает заголовок `x-idempotency-key` и строит ключ хранилища как `"{header}-{topicName}"`. Один и тот же idempotency key в разных топиках — это разные события.
+On the consumer side, `IdempotencyMessageRepository` reads the `x-idempotency-key` header and builds the storage key as `"{header}-{topicName}"`. The same idempotency key in different topics represents different events.
 
-Если заголовок отсутствует — fallback на `msgId()`, поэтому старые producer'ы без idempotency работают без изменений.
+If the header is absent, it falls back to `msgId()`, so legacy producers without idempotency work without any changes.
 
 ```php
 use KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware;
@@ -186,4 +186,3 @@ $repository = new IdempotencyMessageRepository(new DatabaseRepositorySource());
 
 new ConsumerCommiterMiddleware($repository, maxAttempt: 3);
 ```
-

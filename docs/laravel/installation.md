@@ -1,48 +1,48 @@
-# Установка (Laravel)
+# Installation (Laravel)
 
-## Требования
+## Requirements
 
-| Зависимость   | Версия                        |
+| Dependency    | Version                        |
 |---------------|-------------------------------|
 | PHP           | `^8.2`                        |
 | Laravel       | `^10.0 \|\| ^11.0 \|\| ^12.0` |
-| `ext-rdkafka` | любая актуальная              |
+| `ext-rdkafka` | any current                   |
 
-## Установка
+## Installation
 
 ```bash
 composer require kafka-bus/laravel-bridge
 ```
 
-Пакет использует автодискавери — `KafkaBusServiceProvider` регистрируется автоматически.
+The package uses auto-discovery — `KafkaBusServiceProvider` is registered automatically.
 
-## Публикация конфига
+## Publishing the Config
 
 ```bash
 php artisan vendor:publish --tag=kafka-bus
 ```
 
-Создаётся файл `config/kafka-bus.php` с полной конфигурацией соединений, топиков, producers и consumers.
+This creates `config/kafka-bus.php` with a full configuration for connections, topics, producers, and consumers.
 
-## Настройка .env
+## Configuring .env
 
-Минимальный набор переменных для подключения к брокеру:
+Minimum set of variables for connecting to the broker:
 
 ```dotenv
-# Адрес брокера
+# Broker address
 KAFKA_BROKER_LIST=localhost:9092
 
-# Префикс топиков (по умолчанию = APP_ENV + '.')
+# Topic prefix (default = APP_ENV + '.')
 KAFKA_PREFIX=production.
 
 # Consumer group
 KAFKA_CONSUMER_GROUP_ID=my-service
 
-# Подключение (по умолчанию 'kafka')
+# Connection (default 'kafka')
 KAFKA_CONNECTION=kafka
 ```
 
-### SASL-аутентификация
+### SASL Authentication
 
 ```dotenv
 KAFKA_BROKER_LIST=pkc-xxx.us-east-1.aws.confluent.cloud:9092
@@ -52,26 +52,26 @@ KAFKA_SASL_USERNAME=your-api-key
 KAFKA_SASL_PASSWORD=your-api-secret
 ```
 
-## Установка Commiter
+## Installing Commiter
 
-Если нужна идемпотентная обработка сообщений — опубликуйте конфиг и миграции Commiter:
+If you need idempotent message processing, publish the Commiter config and migrations:
 
 ```bash
 php artisan vendor:publish --tag=kafka-bus-commiter
 php artisan migrate
 ```
 
-Создаётся:
+This creates:
 - `config/kafka-bus-commiter.php`
-- Миграция таблицы `kafka_bus_commits`
-  
-Включить middleware в конфиге:
+- Migration for the `kafka_bus_commits` table
+
+Enable the middleware in the config:
 
 ```php
 // config/kafka-bus.php
 'consumers' => [
     'middleware' => [
-        # Можно задать на уровне worker если коммиты нужны не на всех топиках
+        # Can be set at the worker level if commits are not needed for all topics
         KafkaBus\Commiter\Middleware\ConsumerCommiterMiddleware::class,
     ],
 ],
@@ -83,21 +83,21 @@ php artisan migrate
 ],
 ```
 
-Подробнее — в разделе [Commiter](/docs/components/commiter).
+Learn more in the [Commiter](/docs/components/commiter) section.
 
-## Проверка установки
+## Verifying the Installation
 
 ```bash
-# Список зарегистрированных воркеров
+# List registered workers
 php artisan kafka:worker:list
 
-# Список маршрутов producer'а
+# List producer routes
 php artisan kafka:route:list
 ```
 
-## Что дальше
+## What's Next
 
-- [Конфигурация](/docs/laravel/configuration) — полный разбор `config/kafka-bus.php`
-- [Producer](/docs/laravel/producers) — публикация сообщений через Facade и DI
-- [Consumer](/docs/laravel/consumers) — создание воркеров и обработчиков
-- [Artisan-команды](/docs/laravel/commands) — управление воркерами и офсетами
+- [Configuration](/docs/laravel/configuration) — full breakdown of `config/kafka-bus.php`
+- [Producer](/docs/laravel/producers) — publishing messages via Facade and DI
+- [Consumer](/docs/laravel/consumers) — creating workers and handlers
+- [Artisan Commands](/docs/laravel/commands) — managing workers and offsets

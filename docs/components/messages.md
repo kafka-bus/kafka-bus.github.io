@@ -1,25 +1,25 @@
 # kafka-bus-messages
 
-Пакет для структурирования, сериализации и десериализации Kafka-сообщений. Предоставляет типизированные `Payload` с автоматическим кастингом полей, доменные сообщения с поддержкой событий и тест-фабрики.
+A package for structuring, serializing, and deserializing Kafka messages. Provides typed `Payload` with automatic field casting, domain messages with event support, and test factories.
 
-## Установка
+## Installation
 
 ```bash
 composer require kafka-bus/messages
 ```
 
-## Ключевые концепции
+## Key Concepts
 
-| Класс           | Описание                                                               |
-|-----------------|------------------------------------------------------------------------|
-| `Payload`       | Гибкий key-value контейнер с типизированным кастингом                  |
-| `JsonMessage`   | `Payload`, который сериализуется напрямую в JSON-сообщение для Kafka   |
-| `DomainMessage` | Структурированное сообщение с типом события и списком изменённых полей |
-| **Casters**     | Классы для преобразования значений при чтении и записи                 |
+| Class           | Description                                                                    |
+|-----------------|--------------------------------------------------------------------------------|
+| `Payload`       | Flexible key-value container with typed casting                                |
+| `JsonMessage`   | A `Payload` that serializes directly into a JSON Kafka message                 |
+| `DomainMessage` | Structured message with event type and a list of changed fields                |
+| **Casters**     | Classes for transforming values on read and write                              |
 
 ## Payload
 
-Базовый класс для типизированных данных сообщения. Расширьте его и объявите кастеры для автоматического приведения типов:
+Base class for typed message data. Extend it and declare casters for automatic type coercion:
 
 ```php
 use KafkaBus\Messages\Data\Payload;
@@ -46,7 +46,7 @@ class ProductPayload extends Payload
 }
 
 $product = ProductPayload::from([
-    'id'   => '42',              // строка → int
+    'id'   => '42',              // string → int
     'name' => 'Laptop',
     'category'   => ['id' => 1, 'name' => 'Electronics'],
     'attributes' => [
@@ -59,16 +59,16 @@ echo $product->category->name;        // string("Electronics")
 echo $product->attributes[0]->value;  // string("Silver")
 ```
 
-## Доступные кастеры
+## Available Casters
 
-| Кастер             | Описание                                                     |
-|--------------------|--------------------------------------------------------------|
-| `IntegerCaster`    | Приводит к `int`                                             |
-| `FloatCaster`      | Приводит к `float`                                           |
-| `DateTimeCaster`   | Парсит/форматирует `DateTimeInterface`, формат настраивается |
-| `PayloadCaster`    | Гидрирует вложенный `Payload`-подкласс из массива            |
-| `CollectionCaster` | Применяет другой кастер к каждому элементу массива           |
-| `NullableCaster`   | Оборачивает любой кастер, разрешая `null`                    |
+| Caster             | Description                                                         |
+|--------------------|---------------------------------------------------------------------|
+| `IntegerCaster`    | Casts to `int`                                                      |
+| `FloatCaster`      | Casts to `float`                                                    |
+| `DateTimeCaster`   | Parses/formats `DateTimeInterface`, format is configurable          |
+| `PayloadCaster`    | Hydrates a nested `Payload` subclass from an array                  |
+| `CollectionCaster` | Applies another caster to each element of an array                  |
+| `NullableCaster`   | Wraps any caster, allowing `null`                                   |
 
 ```php
 use KafkaBus\Messages\Data\Casters\DateTimeCaster;
@@ -87,7 +87,7 @@ protected function definitionCasters(): array
 
 ## JsonMessage
 
-`JsonMessage` расширяет `Payload` и реализует `ProducerMessageInterface` — его можно публиковать напрямую в Kafka:
+`JsonMessage` extends `Payload` and implements `ProducerMessageInterface` — it can be published directly to Kafka:
 
 ```php
 use KafkaBus\Messages\JsonMessage;
@@ -104,9 +104,9 @@ $bus->publish($message);
 
 ## DomainMessage
 
-Структурированное сообщение для event-driven архитектур. Оборачивает объект атрибутов, тип доменного события (`create`/`update`/`delete`) и список изменённых полей (`dirty`).
+A structured message for event-driven architectures. Wraps an attributes object, a domain event type (`create`/`update`/`delete`), and a list of changed fields (`dirty`).
 
-### Создание класса сообщения
+### Creating a Message Class
 
 ```php
 use Micromus\KafkaBusMessages\DomainMessage;
@@ -120,7 +120,7 @@ class ProductMessage extends DomainMessage
 {
     public function getKey(): ?string
     {
-        // Kafka partition key — все события одного продукта в одну партицию
+        // Kafka partition key — all events for the same product go to the same partition
         return (string) $this->id;
     }
 
@@ -148,7 +148,7 @@ $message = new ProductMessage(
 $bus->publish($message);
 ```
 
-Kafka-сообщение (payload):
+Kafka message (payload):
 
 ```json
 {
@@ -164,7 +164,7 @@ Kafka-сообщение (payload):
 
 ### Consume
 
-Используйте атрибут `#[MessageFactory]` с `DomainMessageFactory`:
+Use the `#[MessageFactory]` attribute with `DomainMessageFactory`:
 
 ```php
 use KafkaBus\Core\Consumers\Attributes\MessageFactory;
@@ -176,10 +176,10 @@ class ProductConsumer
     public function __invoke(ProductMessage $message): void
     {
         echo $message->getEvent()->value; // 'create' | 'update' | 'delete'
-        echo $message->id;           // int(42) — после кастинга
+        echo $message->id;           // int(42) — after casting
         echo $message->name;         // string("Laptop Pro")
 
-        // Список изменённых полей
+        // List of changed fields
         if (in_array('price', $message->getDirty())) {
             $this->updatePriceIndex($message->id, $message->price);
         }
@@ -187,9 +187,9 @@ class ProductConsumer
 }
 ```
 
-## Тест-фабрики
+## Test Factories
 
-Пакет включает базовые фабрики для генерации реалистичных тестовых данных через [FakerPHP](https://github.com/FakerPHP/Faker).
+The package includes base factories for generating realistic test data via [FakerPHP](https://github.com/FakerPHP/Faker).
 
 ### DomainMessageTestFactory
 
@@ -214,22 +214,22 @@ final class ProductTestFactory extends DomainMessageTestFactory
 }
 ```
 
-Использование:
+Usage:
 
 ```php
-// Типизированный DomainMessage с дефолтными fake-данными
+// Typed DomainMessage with default fake data
 $message = ProductTestFactory::new()->message();
 
-// Переопределение полей и события
+// Override fields and event
 $message = ProductTestFactory::new()
     ->withEvent(DomainEventEnum::Delete)
     ->withDirty(['name', 'price'])
     ->message(['name' => 'Custom Name']);
 
-// RdKafka\Message для low-level тестов consumer'а
+// RdKafka\Message for low-level consumer tests
 $rdKafkaMessage = ProductTestFactory::new()->make();
 
-// Чистый массив атрибутов
+// Plain attributes array
 $array = ProductTestFactory::new()->makeArray();
 ```
 

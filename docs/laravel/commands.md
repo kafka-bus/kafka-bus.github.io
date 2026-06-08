@@ -1,18 +1,18 @@
-# Artisan-команды
+# Artisan Commands
 
-## Обзор команд
+## Command Overview
 
-| Команда                                      | Описание                                |
-|----------------------------------------------|-----------------------------------------|
-| `kafka:consume {worker}`                     | Запуск длительного consumer-процесса    |
-| `kafka:worker:list`                          | Список воркеров, топиков и обработчиков |
-| `kafka:route:list`                           | Список маршрутов producer'а             |
-| `kafka:offset:show {worker}`                 | Текущие офсеты воркера                  |
-| `kafka:offset:set {worker} {topic} {offset}` | Установка офсета                        |
+| Command                                      | Description                                    |
+|----------------------------------------------|------------------------------------------------|
+| `kafka:consume {worker}`                     | Start a long-running consumer process          |
+| `kafka:worker:list`                          | List workers, topics, and handlers             |
+| `kafka:route:list`                           | List producer routes                           |
+| `kafka:offset:show {worker}`                 | Show current offsets for a worker              |
+| `kafka:offset:set {worker} {topic} {offset}` | Set an offset                                  |
 
 ## kafka:consume
 
-Запускает блокирующий цикл чтения для указанного воркера. Процесс продолжается до получения `SIGINT` или `SIGTERM`.
+Starts a blocking read loop for the specified worker. The process continues until it receives `SIGINT` or `SIGTERM`.
 
 ```bash
 php artisan kafka:consume products
@@ -21,12 +21,12 @@ php artisan kafka:consume products-secondary
 ```
 
 ::: tip
-Для продакшна оберните команду в Supervisor, чтобы обеспечить автоматический перезапуск при падении.
+For production, wrap the command in Supervisor to ensure automatic restarts on failure.
 :::
 
 ## kafka:worker:list
 
-Выводит полный список зарегистрированных воркеров с их конфигурацией.
+Prints the full list of registered workers with their configuration.
 
 ```bash
 php artisan kafka:worker:list
@@ -42,11 +42,11 @@ php artisan kafka:worker:list
 +----------+-----------+----------------------------+------------------------------------------+---------------------+------------------+
 ```
 
-Используйте для быстрой проверки, что все воркеры настроены корректно после изменения конфига.
+Use this for a quick sanity check that all workers are configured correctly after changing the config.
 
 ## kafka:route:list
 
-Выводит зарегистрированные маршруты producer'а.
+Prints the registered producer routes.
 
 ```bash
 php artisan kafka:route:list
@@ -63,7 +63,7 @@ php artisan kafka:route:list
 
 ## kafka:offset:show
 
-Показывает текущий, минимальный и максимальный офсеты для каждой партиции каждого топика воркера.
+Shows the current, minimum, and maximum offsets for each partition of each topic in the worker.
 
 ```bash
 php artisan kafka:offset:show products
@@ -78,41 +78,41 @@ php artisan kafka:offset:show products
 +-----------+----------------------------+-----------+---------+-----+-----+
 ```
 
-Полезно для мониторинга лага consumer'а. Лаг = `Max - Current`.
+Useful for monitoring consumer lag. Lag = `Max - Current`.
 
 ## kafka:offset:set
 
-Устанавливает committed offset для топика воркера. Позволяет перечитать сообщения или пропустить накопившийся бэклог.
+Sets the committed offset for a worker's topic. Allows you to re-read messages or skip an accumulated backlog.
 
 ```bash
 kafka:offset:set {workerName} {topicKey} {offset} {--partition=}
 ```
 
-### Перейти к первому сообщению (перечитать всё)
+### Go to the first message (re-read everything)
 
 ```bash
 php artisan kafka:offset:set products products earliest
 ```
 
-### Перейти к последнему сообщению (пропустить бэклог)
+### Go to the last message (skip the backlog)
 
 ```bash
 php artisan kafka:offset:set products products latest
 ```
 
-### Установить конкретный офсет
+### Set a specific offset
 
 ```bash
 php artisan kafka:offset:set products products 150
 ```
 
-### Установить офсет для конкретной партиции
+### Set an offset for a specific partition
 
 ```bash
 php artisan kafka:offset:set products products 150 --partition=0
 ```
 
-Команда выводит результат:
+The command prints the result:
 
 ```
 +-----------+----------------------------+-----------+-----+-----+
@@ -123,6 +123,6 @@ php artisan kafka:offset:set products products 150 --partition=0
 +-----------+----------------------------+-----------+-----+-----+
 ```
 
-::: danger Важно
-Воркер должен быть **остановлен** во время сброса офсетов. Если consumer-процесс работает, он перезапишет новую позицию при следующем коммите.
+::: danger Important
+The worker must be **stopped** while resetting offsets. If the consumer process is running, it will overwrite the new position on the next commit.
 :::

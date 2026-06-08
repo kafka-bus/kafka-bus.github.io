@@ -1,12 +1,12 @@
-# Конфигурация
+# Configuration
 
-Пакет строится вокруг `ConnectionRegistry` — реестра именованных соединений с Kafka. Каждое соединение реализует `ConnectionInterface` и создаётся через соответствующий драйвер.
+The package is built around `ConnectionRegistry` — a registry of named connections to Kafka. Each connection implements `ConnectionInterface` and is created via the corresponding driver.
 
-## Соединения
+## Connections
 
-### Kafka-соединение (основной драйвер)
+### Kafka Connection (main driver)
 
-`KafkaConnection` использует `ext-rdkafka` и принимает любые опции `librdkafka` в массиве `options`:
+`KafkaConnection` uses `ext-rdkafka` and accepts any `librdkafka` options in the `options` array:
 
 ```php
 use KafkaBus\Core\Connections\Config\KafkaConnectionConfig;
@@ -26,7 +26,7 @@ $connectionRegistry = new ConnectionRegistry(
 );
 ```
 
-### Подключение с SASL-аутентификацией
+### Connection with SASL Authentication
 
 ```php
 $config = new KafkaConnectionConfig(options: [
@@ -38,9 +38,9 @@ $config = new KafkaConnectionConfig(options: [
 ]);
 ```
 
-### Несколько соединений
+### Multiple Connections
 
-`ConnectionRegistry` поддерживает несколько именованных соединений — например, для разных кластеров:
+`ConnectionRegistry` supports multiple named connections — for example, for different clusters:
 
 ```php
 $connectionRegistry = new ConnectionRegistry(
@@ -53,21 +53,21 @@ $connectionRegistry = new ConnectionRegistry(
 );
 ```
 
-Переключение соединения на уровне Bus:
+Switching connections at the Bus level:
 
 ```php
-// Опубликовать через не-дефолтное соединение
+// Publish via a non-default connection
 $bus->onConnection('analytics')->publish($message);
 ```
 
-### Null-драйвер (для тестов)
+### Null Driver (for tests)
 
-`NullConnection` принимает вызовы, но не взаимодействует с реальным брокером. Используйте его в тестовом окружении:
+`NullConnection` accepts calls but does not interact with a real broker. Use it in your test environment:
 
 ```php
 use KafkaBus\Core\Connections\NullConnection;
 
-// Вместо реального соединения:
+// Instead of a real connection:
 $connectionRegistry = new ConnectionRegistry(
     driverRegistry: $driverRegistry,
     connections: ['testing' => new NullConnectionConfig()],
@@ -76,12 +76,12 @@ $connectionRegistry = new ConnectionRegistry(
 ```
 
 ::: tip
-В Laravel-пакете `null`-драйвер настраивается через `'driver' => 'null'` в конфиге — отдельный класс создавать не нужно.
+In the Laravel package, the `null` driver is configured via `'driver' => 'null'` in the config — no need to create a separate class.
 :::
 
-## Сборка Bus
+## Building the Bus
 
-После настройки реестра соединений собирается `Bus` — центральный фасад пакета:
+After configuring the connection registry, the `Bus` — the package's central facade — is assembled:
 
 ```php
 use KafkaBus\Core\Bus;
@@ -98,19 +98,19 @@ $bus = new Bus(
 );
 ```
 
-## Справочник опций
+## Options Reference
 
-Наиболее часто используемые опции:
+The most commonly used options:
 
-| Опция                  | Описание                | Пример                   |
-|------------------------|-------------------------|--------------------------|
-| `metadata.broker.list` | Адреса брокеров         | `kafka:9092,kafka2:9092` |
-| `security.protocol`    | Протокол безопасности   | `SASL_PLAINTEXT`, `SSL`  |
-| `sasl.mechanisms`      | Механизм SASL           | `PLAIN`, `SCRAM-SHA-256` |
-| `debug`                | Отладочные логи rdkafka | `consumer,cgrp,topic`    |
-| `compression.codec`    | Сжатие (для producer)   | `snappy`, `gzip`, `lz4`  |
-| `group.id`             | Consumer group          | `my-service`             |
-| `auto.offset.reset`    | Стартовая позиция       | `earliest`, `latest`     |
-| `max.poll.interval.ms` | Таймаут поллинга        | `300000`                 |
+| Option                 | Description              | Example                  |
+|------------------------|--------------------------|--------------------------|
+| `metadata.broker.list` | Broker addresses         | `kafka:9092,kafka2:9092` |
+| `security.protocol`    | Security protocol        | `SASL_PLAINTEXT`, `SSL`  |
+| `sasl.mechanisms`      | SASL mechanism           | `PLAIN`, `SCRAM-SHA-256` |
+| `debug`                | rdkafka debug logs       | `consumer,cgrp,topic`    |
+| `compression.codec`    | Compression (producer)   | `snappy`, `gzip`, `lz4`  |
+| `group.id`             | Consumer group           | `my-service`             |
+| `auto.offset.reset`    | Start position           | `earliest`, `latest`     |
+| `max.poll.interval.ms` | Poll timeout             | `300000`                 |
 
-Полный список — в [документации librdkafka](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md).
+Full list — in the [librdkafka documentation](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md).
