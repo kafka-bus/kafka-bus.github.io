@@ -121,9 +121,19 @@ $bus->publish(new OrderCreatedMessage($order));
 
 <FeatureCard icon="⛓️" title="Middleware Pipeline" details="Attach middleware globally for a worker — every message on every topic passes through the chain. Each middleware receives the pipeline and decides whether to pass control to the next link." link="/docs/consumer/pipeline">
 
-```php
+::: code-group
+
+```php [Consumer]
+use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineHandler;
+use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineMiddleware;
+use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+
 class LoggingMiddleware implements ConsumerPipelineMiddleware
 {
+    /**
+     * @param PipelineInterface<ConsumerPipelineHandler> $pipeline
+     * @return PipelineInterface<ConsumerPipelineHandler>
+     */
     public function handle(PipelineInterface $pipeline): PipelineInterface
     {
         $start   = hrtime(true);
@@ -134,6 +144,36 @@ class LoggingMiddleware implements ConsumerPipelineMiddleware
     }
 }
 ```
+
+```php [Producer]
+use KafkaBus\Commiter\Interfaces\HasIdempotency;
+use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
+use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+use KafkaBus\Core\Producers\Pipelines\ProducerPipelineHandler;
+use KafkaBus\Core\Producers\Pipelines\ProducerPipelineMiddleware;
+
+final readonly class ProducerIdempotencyMiddleware implements ProducerPipelineMiddleware
+{
+    /**
+     * @param PipelineInterface<ProducerPipelineHandler> $pipeline
+     * @return PipelineInterface<ProducerPipelineHandler>
+     */
+    public function handle(PipelineInterface $pipeline): PipelineInterface
+    {
+        $message = $pipeline->handler()
+            ->target();
+
+        if ($message instanceof HasIdempotency) {
+            $pipeline->handler()
+                ->withHeader(IdempotencyMessageRepository::HEADER_NAME, $message->getIdempotencyKey());
+        }
+
+        return $pipeline->continue();
+    }
+}
+```
+
+:::
 
 </FeatureCard>
 

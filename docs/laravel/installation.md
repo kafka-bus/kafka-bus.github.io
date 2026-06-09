@@ -1,5 +1,4 @@
-# Installation (Laravel)
-
+# Installation
 ## Requirements
 
 | Dependency    | Version                        |

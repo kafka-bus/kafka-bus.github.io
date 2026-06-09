@@ -1,4 +1,4 @@
-# Configuration (Laravel)
+# Configuration
 
 All configuration lives in `config/kafka-bus.php` and is divided into four sections.
 

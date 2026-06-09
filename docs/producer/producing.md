@@ -56,6 +56,67 @@ final readonly class ProductCreatedMessage implements ProducerMessageInterface, 
 $bus->publish(new ProductCreatedMessage(1, 'Laptop', 'Electronics'));
 ```
 
+## Optional Message Interfaces
+
+Implement any combination of these interfaces on your message class to control how it is delivered.
+
+### HasKey
+
+```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
+```
+
+Returns the Kafka partition key for the message. Messages that share the same key are always routed to the same partition, which guarantees ordering for that key.
+
+```php
+public function getKey(): ?string
+{
+    return (string) $this->orderId; // all events for the same order land in the same partition
+}
+```
+
+Return `null` to let Kafka choose a partition freely (round-robin or random, depending on the broker version).
+
+---
+
+### HasHeaders
+
+```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
+```
+
+Attaches metadata headers to the message. Headers are merged with any headers added via `ProducerPipelineHandler::withHeader()`, with the per-call headers taking precedence on duplicate keys.
+
+```php
+public function getHeaders(): array
+{
+    return [
+        'event'   => 'order.created',
+        'version' => '2',
+        'source'  => 'order-service',
+    ];
+}
+```
+
+---
+
+### HasPartition
+
+```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
+```
+
+Pins the message to a specific partition number. The value is clamped to `RD_KAFKA_PARTITION_UA` (`-1`) as a minimum, so returning a negative number is equivalent to not implementing the interface at all.
+
+```php
+public function getPartition(): int
+{
+    return 3; // always deliver to partition 3
+}
+```
+
+> Prefer `HasKey` for ordering guarantees. Use `HasPartition` only when you need explicit partition control, for example when consuming and re-publishing to a mirrored topic.
+
 ## Batch Publishing
 
 Use `Bus::publishBatch()` to send multiple messages at once:

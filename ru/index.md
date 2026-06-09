@@ -1,4 +1,4 @@
-﻿---
+---
 layout: home
 
 hero:
@@ -121,9 +121,19 @@ $bus->publish(new OrderCreatedMessage($order));
 
 <FeatureCard icon="⛓️" title="Middleware Pipeline" details="Подключайте middleware глобально для воркера — каждое сообщение в каждом топике проходит через цепочку. Каждый middleware получает pipeline и решает, передавать ли управление следующему звену." link="/ru/docs/consumer/pipeline">
 
-```php
+::: code-group
+
+```php [Consumer]
+use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineHandler;
+use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineMiddleware;
+use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+
 class LoggingMiddleware implements ConsumerPipelineMiddleware
 {
+    /**
+     * @param PipelineInterface<ConsumerPipelineHandler> $pipeline
+     * @return PipelineInterface<ConsumerPipelineHandler>
+     */
     public function handle(PipelineInterface $pipeline): PipelineInterface
     {
         $start   = hrtime(true);
@@ -133,28 +143,37 @@ class LoggingMiddleware implements ConsumerPipelineMiddleware
         return $result;
     }
 }
-
-$workerRegistry = MemoryWorkerRegistry::make()
-    ->add(new Worker(
-        name:    'default',
-        routes:  $consumerRoutes,
-        options: new Options(
-            middleware: [
-                new LoggingMiddleware(),
-                new RetryMiddleware(),
-            ],
-            additionalOptions: [
-                'group.id'              => 'my-service',
-                'auto.offset.reset'     => 'earliest',
-                'max.poll.interval.ms'  => 300_000,
-                'session.timeout.ms'    => 45_000,
-                'heartbeat.interval.ms' => 3_000,
-            ],
-            autoCommit:     false,
-            consumeTimeout: 5_000,
-        )
-    ));
 ```
+
+```php [Producer]
+use KafkaBus\Commiter\Interfaces\HasIdempotency;
+use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
+use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+use KafkaBus\Core\Producers\Pipelines\ProducerPipelineHandler;
+use KafkaBus\Core\Producers\Pipelines\ProducerPipelineMiddleware;
+
+final readonly class ProducerIdempotencyMiddleware implements ProducerPipelineMiddleware
+{
+    /**
+     * @param PipelineInterface<ProducerPipelineHandler> $pipeline
+     * @return PipelineInterface<ProducerPipelineHandler>
+     */
+    public function handle(PipelineInterface $pipeline): PipelineInterface
+    {
+        $message = $pipeline->handler()
+            ->target();
+
+        if ($message instanceof HasIdempotency) {
+            $pipeline->handler()
+                ->withHeader(IdempotencyMessageRepository::HEADER_NAME, $message->getIdempotencyKey());
+        }
+
+        return $pipeline->continue();
+    }
+}
+```
+
+:::
 
 </FeatureCard>
 
