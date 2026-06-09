@@ -1,4 +1,4 @@
-﻿---
+---
 layout: home
 
 hero:
@@ -43,44 +43,6 @@ features:
 <h2 class="home-features-title">Возможности</h2>
 <p class="home-features-subtitle">Всё необходимое для надёжной работы с Kafka на PHP</p>
 
-<FeatureCard icon="🎯" title="Умный резолвинг обработчиков" details="Объявите нужный тип — шина его доставит. Обработчики получают ConsumerMessageInterface для полного доступа, string для сырого payload, array для декодированного JSON или RdKafka\Message для метаданных. Атрибут #[MessageFactory] для автоматической гидратации типизированных объектов." link="/ru/docs/consumer/consuming">
-
-::: code-group
-
-```php [DomainMessage]
-class ProductHandler
-{
-    #[MessageFactory(new DomainMessageFactory(ProductMessage::class))]
-    public function __invoke(ProductMessage $message): void
-    {
-        echo $message->getEvent()->value; // 'create' | 'update' | 'delete'
-        echo $message->id;   // int — автокаст
-        echo $message->name; // string
-
-        if (in_array('price', $message->getDirty())) {
-            $this->updatePriceIndex($message->id, $message->price);
-        }
-    }
-}
-```
-
-```php [RdKafka\Message]
-class AuditHandler
-{
-    public function __invoke(RdKafka\Message $msg): void
-    {
-        echo $msg->key;       // ключ партиции Kafka
-        echo $msg->offset;    // текущий offset
-        echo $msg->partition; // номер партиции
-        echo $msg->timestamp; // временная метка сообщения
-    }
-}
-```
-
-:::
-
-</FeatureCard>
-
 <FeatureCard icon="🗂️" title="Topic Registry и маршрутизация" details="Маппинг коротких логических ключей на физические имена топиков — единый источник истины для всего приложения. ConsumerRoutesBuilder маршрутизирует входящие сообщения к обработчикам по ключу; PublisherRoutesBuilder автоматически определяет целевой топик по классу сообщения." link="/ru/docs/topics">
 
 ::: code-group
@@ -121,40 +83,62 @@ $bus->publish(new OrderCreatedMessage($order));
 
 <FeatureCard icon="⛓️" title="Middleware Pipeline" details="Подключайте middleware глобально для воркера — каждое сообщение в каждом топике проходит через цепочку. Каждый middleware получает pipeline и решает, передавать ли управление следующему звену." link="/ru/docs/consumer/pipeline">
 
-```php
+::: code-group
+
+```php [Consumer]
+use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineHandler;
+use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineMiddleware;
+use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+
 class LoggingMiddleware implements ConsumerPipelineMiddleware
 {
+    /**
+     * @param PipelineInterface<ConsumerPipelineHandler> $pipeline
+     * @return PipelineInterface<ConsumerPipelineHandler>
+     */
     public function handle(PipelineInterface $pipeline): PipelineInterface
     {
-        $start   = hrtime(true);
-        $result  = $pipeline->continue();
+        $start = hrtime(true);
+        
+        $pipeline->continue();
+        
         $elapsed = (hrtime(true) - $start) / 1e6;
         echo "Обработано за {$elapsed}мс: " . $pipeline->handler()->target()->topicName();
-        return $result;
+        
+        return $pipeline;
     }
 }
-
-$workerRegistry = MemoryWorkerRegistry::make()
-    ->add(new Worker(
-        name:    'default',
-        routes:  $consumerRoutes,
-        options: new Options(
-            middleware: [
-                new LoggingMiddleware(),
-                new RetryMiddleware(),
-            ],
-            additionalOptions: [
-                'group.id'              => 'my-service',
-                'auto.offset.reset'     => 'earliest',
-                'max.poll.interval.ms'  => 300_000,
-                'session.timeout.ms'    => 45_000,
-                'heartbeat.interval.ms' => 3_000,
-            ],
-            autoCommit:     false,
-            consumeTimeout: 5_000,
-        )
-    ));
 ```
+
+```php [Producer]
+use KafkaBus\Commiter\Interfaces\HasIdempotency;
+use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
+use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+use KafkaBus\Core\Producers\Pipelines\ProducerPipelineHandler;
+use KafkaBus\Core\Producers\Pipelines\ProducerPipelineMiddleware;
+
+final readonly class ProducerIdempotencyMiddleware implements ProducerPipelineMiddleware
+{
+    /**
+     * @param PipelineInterface<ProducerPipelineHandler> $pipeline
+     * @return PipelineInterface<ProducerPipelineHandler>
+     */
+    public function handle(PipelineInterface $pipeline): PipelineInterface
+    {
+        $message = $pipeline->handler()
+            ->target();
+
+        if ($message instanceof HasIdempotency) {
+            $pipeline->handler()
+                ->withHeader(IdempotencyMessageRepository::HEADER_NAME, $message->getIdempotencyKey());
+        }
+
+        return $pipeline->continue();
+    }
+}
+```
+
+:::
 
 </FeatureCard>
 
@@ -184,6 +168,92 @@ echo $product->id;             // int(42)
 echo $product->price;          // float(9.99)
 echo $product->category->name; // "Электроника"
 ```
+
+</FeatureCard>
+
+<FeatureCard icon="🔑" title="Контракты доставки сообщений" details="Реализуйте HasKey, HasHeaders или HasPartition на любом классе сообщения, чтобы управлять его доставкой. Все три интерфейса независимы и могут свободно комбинироваться." link="/ru/docs/producer/producing">
+
+::: code-group
+
+```php [HasKey]
+use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
+
+final readonly class OrderCreatedMessage implements ProducerMessageInterface, HasKey
+{
+    public function getKey(): ?string
+    {
+        return (string) $this->orderId; // все события одного заказа идут в одну партицию
+    }
+}
+```
+
+```php [HasHeaders]
+use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
+
+final readonly class OrderCreatedMessage implements ProducerMessageInterface, HasHeaders
+{
+    public function getHeaders(): array
+    {
+        return [
+            'event'   => 'order.created',
+            'version' => '2',
+            'source'  => 'order-service',
+        ];
+    }
+}
+```
+
+```php [HasPartition]
+use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
+
+final readonly class OrderCreatedMessage implements ProducerMessageInterface, HasPartition
+{
+    public function getPartition(): int
+    {
+        return 3; // всегда доставлять в партицию 3
+    }
+}
+```
+
+:::
+
+</FeatureCard>
+
+<FeatureCard icon="🎯" title="Умный резолвинг обработчиков" details="Объявите нужный тип — шина его доставит. Обработчики получают ConsumerMessageInterface для полного доступа, string для сырого payload, array для декодированного JSON или RdKafka\Message для метаданных. Атрибут #[MessageFactory] для автоматической гидратации типизированных объектов." link="/ru/docs/consumer/consuming">
+
+::: code-group
+
+```php [DomainMessage]
+class ProductHandler
+{
+    #[MessageFactory(new DomainMessageFactory(ProductMessage::class))]
+    public function __invoke(ProductMessage $message): void
+    {
+        echo $message->getEvent()->value; // 'create' | 'update' | 'delete'
+        echo $message->id;   // int — автокаст
+        echo $message->name; // string
+
+        if (in_array('price', $message->getDirty())) {
+            $this->updatePriceIndex($message->id, $message->price);
+        }
+    }
+}
+```
+
+```php [RdKafka\Message]
+class AuditHandler
+{
+    public function __invoke(RdKafka\Message $msg): void
+    {
+        echo $msg->key;       // ключ партиции Kafka
+        echo $msg->offset;    // текущий offset
+        echo $msg->partition; // номер партиции
+        echo $msg->timestamp; // временная метка сообщения
+    }
+}
+```
+
+:::
 
 </FeatureCard>
 
@@ -220,46 +290,6 @@ new ProducerIdempotencyMiddleware()
 
 </FeatureCard>
 
-<FeatureCard icon="🧪" title="Тестирование первого класса" details="KafkaBus::fake() перехватывает все вызовы шины — реальный брокер не нужен. Проверяйте какие сообщения были опубликованы, сколько раз и с каким payload. Подавайте сообщения в фейковый consumer и проверяйте коммиты. Только в kafka-bus/laravel-bridge." link="/ru/docs/laravel/testing">
-
-::: code-group
-
-```php [Producer]
-it('публикует сообщение при создании продукта', function () {
-    KafkaBus::fake();
-
-    app(CreateProductAction::class)->execute(id: 1, name: 'Ноутбук');
-
-    KafkaBus::assertPublished(
-        ProductMessage::class,
-        fn($msg) => str_contains($msg->payload, '"id":1')
-                 && isset($msg->headers['x-idempotency-key'])
-    );
-    KafkaBus::assertPublishedTimes(ProductMessage::class, 1);
-    KafkaBus::assertNotPublished(OrderMessage::class);
-});
-```
-
-```php [Consumer]
-it('сохраняет продукт при получении сообщения', function () {
-    KafkaBus::fake();
-
-    KafkaBus::addMessage(
-        MessageFactory::for()
-            ->withTopicKey('products')
-            ->make('{"id":42,"name":"Ноутбук"}')
-    );
-    KafkaBus::listen('products');
-
-    expect(Product::find(42)->name)->toBe('Ноутбук');
-    KafkaBus::assertCommitted('products');
-});
-```
-
-:::
-
-</FeatureCard>
-
 <FeatureCard icon="🔀" title="Множественные подключения" details="Регистрируйте любое количество именованных подключений к разным кластерам Kafka. Шина использует подключение по умолчанию; переключайтесь на другое через onConnection() в конкретном вызове." link="/ru/docs/configuration">
 
 ```php
@@ -284,9 +314,11 @@ $bus->onConnection('analytics')->publish(new PageViewEvent()); // analytics
 
 </FeatureCard>
 
-<FeatureCard icon="🟥" title="Интеграция с Laravel" details="Установите kafka-bus/laravel-bridge для автодискавери, готового конфига и Artisan команд. Фасад KafkaBus зеркалит API ядра и добавляет метод fake(), работающий как Event::fake() в тестах." link="/ru/docs/laravel/installation">
+<FeatureCard icon="🟥" title="Интеграция с Laravel" details="Установите kafka-bus/laravel-bridge для автодискавери, готового конфига и Artisan команд. KafkaBus::fake() перехватывает все вызовы шины — реальный брокер не нужен. Проверяйте опубликованные сообщения, подавайте в фейковый consumer и проверяйте коммиты." link="/ru/docs/laravel/installation">
 
-```php
+::: code-group
+
+```php [Setup]
 // config/kafka-bus.php — готов к использованию после публикации
 'connections' => [
     'kafka' => [
@@ -307,6 +339,40 @@ KafkaBus::onConnection('analytics')->publish(new PageViewEvent());
 KafkaBus::fake();
 KafkaBus::assertPublished(ProductCreatedMessage::class);
 ```
+
+```php [Producer Тесты]
+it('публикует сообщение при создании продукта', function () {
+    KafkaBus::fake();
+
+    app(CreateProductAction::class)->execute(id: 1, name: 'Ноутбук');
+
+    KafkaBus::assertPublished(
+        ProductMessage::class,
+        fn($msg) => str_contains($msg->payload, '"id":1')
+                 && isset($msg->headers['x-idempotency-key'])
+    );
+    KafkaBus::assertPublishedTimes(ProductMessage::class, 1);
+    KafkaBus::assertNotPublished(OrderMessage::class);
+});
+```
+
+```php [Consumer Тесты]
+it('сохраняет продукт при получении сообщения', function () {
+    KafkaBus::fake();
+
+    KafkaBus::addMessage(
+        MessageFactory::for()
+            ->withTopicKey('products')
+            ->make('{"id":42,"name":"Ноутбук"}')
+    );
+    KafkaBus::listen('products');
+
+    expect(Product::find(42)->name)->toBe('Ноутбук');
+    KafkaBus::assertCommitted('products');
+});
+```
+
+:::
 
 </FeatureCard>
 
