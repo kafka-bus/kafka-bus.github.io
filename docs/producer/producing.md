@@ -62,13 +62,11 @@ Implement any combination of these interfaces on your message class to control h
 
 ### HasKey
 
-```php
-use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
-```
-
 Returns the Kafka partition key for the message. Messages that share the same key are always routed to the same partition, which guarantees ordering for that key.
 
 ```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
+
 public function getKey(): ?string
 {
     return (string) $this->orderId; // all events for the same order land in the same partition
@@ -77,17 +75,13 @@ public function getKey(): ?string
 
 Return `null` to let Kafka choose a partition freely (round-robin or random, depending on the broker version).
 
----
-
 ### HasHeaders
-
-```php
-use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
-```
 
 Attaches metadata headers to the message. Headers are merged with any headers added via `ProducerPipelineHandler::withHeader()`, with the per-call headers taking precedence on duplicate keys.
 
 ```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
+
 public function getHeaders(): array
 {
     return [
@@ -98,17 +92,14 @@ public function getHeaders(): array
 }
 ```
 
----
 
 ### HasPartition
-
-```php
-use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
-```
 
 Pins the message to a specific partition number. The value is clamped to `RD_KAFKA_PARTITION_UA` (`-1`) as a minimum, so returning a negative number is equivalent to not implementing the interface at all.
 
 ```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
+
 public function getPartition(): int
 {
     return 3; // always deliver to partition 3

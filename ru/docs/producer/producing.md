@@ -62,13 +62,11 @@ $bus->publish(new ProductCreatedMessage(1, 'Ноутбук', 'Электрони
 
 ### HasKey
 
-```php
-use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
-```
-
 Возвращает ключ партиции Kafka для сообщения. Сообщения с одинаковым ключом всегда попадают в одну партицию, что гарантирует упорядоченность для этого ключа.
 
 ```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
+
 public function getKey(): ?string
 {
     return (string) $this->orderId; // все события одного заказа попадают в одну партицию
@@ -79,13 +77,11 @@ public function getKey(): ?string
 
 ### HasHeaders
 
-```php
-use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
-```
-
 Прикрепляет метаданные-заголовки к сообщению. Заголовки объединяются с теми, что добавлены через `ProducerPipelineHandler::withHeader()`; при дублировании ключей приоритет имеют заголовки, переданные через `withHeader()`.
 
 ```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
+
 public function getHeaders(): array
 {
     return [
@@ -98,13 +94,11 @@ public function getHeaders(): array
 
 ### HasPartition
 
-```php
-use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
-```
-
 Закрепляет сообщение за конкретным номером партиции. Значение ограничено снизу константой `RD_KAFKA_PARTITION_UA` (`-1`), поэтому возврат отрицательного числа равнозначен отсутствию реализации интерфейса.
 
 ```php
+use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
+
 public function getPartition(): int
 {
     return 3; // всегда доставлять в партицию 3
