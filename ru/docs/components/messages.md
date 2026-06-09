@@ -201,6 +201,8 @@ use KafkaBus\Messages\Testing\DomainMessageTestFactory;
 final class ProductTestFactory extends DomainMessageTestFactory
 {
     protected string $messageClass = ProductMessage::class;
+    
+    protected string $topicKey = 'products';
 
     public function definition(): array
     {
