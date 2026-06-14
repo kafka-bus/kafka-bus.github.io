@@ -4,7 +4,8 @@
 
 | Command                                      | Description                                    |
 |----------------------------------------------|------------------------------------------------|
-| `kafka:consume {worker}`                     | Start a long-running consumer process          |
+| `kafka:consume {worker*}`                    | Start a long-running consumer process          |
+| `kafka:consume:all {--expect=*}`             | Start consumers for all configured workers     |
 | `kafka:worker:list`                          | List workers, topics, and handlers             |
 | `kafka:route:list`                           | List producer routes                           |
 | `kafka:offset:show {worker}`                 | Show current offsets for a worker              |
@@ -13,17 +14,44 @@
 
 ## kafka:consume
 
-Starts a blocking read loop for the specified worker. The process continues until it receives `SIGINT` or `SIGTERM`.
+::: info Available since `kafka-bus/laravel-bridge:^1.2`
+Support for multiple worker names was added in version 1.2.
+:::
+
+Starts a blocking read loop for one or more workers. The process continues until it receives `SIGINT` or `SIGTERM`.
 
 ```bash
+# Single worker
 php artisan kafka:consume products
-php artisan kafka:consume default
-php artisan kafka:consume products-secondary
+
+# Multiple workers in one process
+php artisan kafka:consume products orders
+php artisan kafka:consume products orders notifications
 ```
+
+When multiple worker names are given, their topics are merged into a single consumer stream.
 
 ::: tip
 For production, wrap the command in Supervisor to ensure automatic restarts on failure.
 :::
+
+## kafka:consume:all
+
+::: info Available since `kafka-bus/laravel-bridge:^1.2`
+:::
+
+Starts consumers for **all** workers declared in `config/kafka-bus.php` under `consumers.workers`, in a single process. Use `--expect` to exclude specific workers.
+
+```bash
+# Start all workers
+php artisan kafka:consume:all
+
+# Start all workers except "orders"
+php artisan kafka:consume:all --expect=orders
+
+# Exclude multiple workers
+php artisan kafka:consume:all --expect=orders --expect=notifications
+```
 
 ## kafka:worker:list
 
