@@ -4,8 +4,9 @@
 
 | Команда                                              | Описание                                           |
 |------------------------------------------------------|----------------------------------------------------|
-| `kafka:consume {worker}`                             | Запуск долгоживущего процесса консьюмера           |
-| `kafka:worker:list`                                  | Список воркеров, топиков и обработчиков               |
+| `kafka:consume {worker*}`                            | Запуск долгоживущего процесса консьюмера           |
+| `kafka:consume:all {--expect=*}`                     | Запуск консьюмеров для всех настроенных воркеров   |
+| `kafka:worker:list`                                  | Список воркеров, топиков и обработчиков            |
 | `kafka:route:list`                                   | Список маршрутов продьюсера                        |
 | `kafka:offset:show {worker}`                         | Текущие offset воркера                             |
 | `kafka:offset:set {worker} {topic} {offset}`         | Установка offset                                   |
@@ -13,17 +14,44 @@
 
 ## kafka:consume
 
-Запускает блокирующий цикл чтения для указанного воркера. Процесс продолжается до получения `SIGINT` или `SIGTERM`.
+::: info Доступно с `kafka-bus/laravel-bridge:^1.2`
+Поддержка нескольких имён воркеров добавлена в версии 1.2.
+:::
+
+Запускает блокирующий цикл чтения для одного или нескольких воркеров. Процесс продолжается до получения `SIGINT` или `SIGTERM`.
 
 ```bash
+# Один воркер
 php artisan kafka:consume products
-php artisan kafka:consume default
-php artisan kafka:consume products-secondary
+
+# Несколько воркеров в одном процессе
+php artisan kafka:consume products orders
+php artisan kafka:consume products orders notifications
 ```
+
+При передаче нескольких имён воркеров их топики объединяются в единый consumer stream.
 
 ::: tip
 В продакшне оберните команду в Supervisor для автоматического перезапуска при сбоях.
 :::
+
+## kafka:consume:all
+
+::: info Доступно с `kafka-bus/laravel-bridge:^1.2`
+:::
+
+Запускает консьюмеры для **всех** воркеров, объявленных в `config/kafka-bus.php` в секции `consumers.workers`, в едином процессе. Используйте `--expect` для исключения конкретных воркеров.
+
+```bash
+# Запустить все воркеры
+php artisan kafka:consume:all
+
+# Запустить все воркеры кроме "orders"
+php artisan kafka:consume:all --expect=orders
+
+# Исключить несколько воркеров
+php artisan kafka:consume:all --expect=orders --expect=notifications
+```
 
 ## kafka:worker:list
 

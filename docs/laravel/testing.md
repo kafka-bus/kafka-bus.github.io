@@ -113,6 +113,28 @@ KafkaBus::listen('products');
 expect(Product::count())->toBe(3);
 ```
 
+### Testing Multiple Workers <Badge type="info" text="laravel-bridge ^1.2" />
+
+Since `kafka-bus/laravel-bridge:^1.2`, `listen()` accepts an array of worker names. Their topics are merged into a single consumer stream, matching the behaviour of `kafka:consume worker1 worker2`.
+
+```php
+it('processes messages from products and orders workers', function () {
+    KafkaBus::fake();
+
+    KafkaBus::addMessage(
+        MessageFactory::for()->withTopicKey('products')->make('{"id":1}')
+    );
+    KafkaBus::addMessage(
+        MessageFactory::for()->withTopicKey('orders')->make('{"id":2}')
+    );
+
+    KafkaBus::listen(['products', 'orders']);
+
+    KafkaBus::assertCommitted('products');
+    KafkaBus::assertCommitted('orders');
+});
+```
+
 ## Asserting Commits
 
 After `listen()`, every successfully processed message is recorded in the fake. This lets you verify that the handler ran and the offset was acknowledged:

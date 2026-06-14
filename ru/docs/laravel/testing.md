@@ -1,4 +1,4 @@
-﻿# Тестирование
+# Тестирование
 
 Фасад `KafkaBus` поставляется с полноценной fake-заглушкой, работающей аналогично `Event::fake()` или `Mail::fake()`.
 
@@ -111,6 +111,28 @@ KafkaBus::addMessage($factory->make('{"id":3}'));
 KafkaBus::listen('products');
 
 expect(Product::count())->toBe(3);
+```
+
+### Тестирование нескольких воркеров <Badge type="info" text="laravel-bridge ^1.2" />
+
+Начиная с `kafka-bus/laravel-bridge:^1.2`, метод `listen()` принимает массив имён воркеров. Их топики объединяются в единый consumer stream — аналогично поведению `kafka:consume worker1 worker2`.
+
+```php
+it('обрабатывает сообщения из воркеров products и orders', function () {
+    KafkaBus::fake();
+
+    KafkaBus::addMessage(
+        MessageFactory::for()->withTopicKey('products')->make('{"id":1}')
+    );
+    KafkaBus::addMessage(
+        MessageFactory::for()->withTopicKey('orders')->make('{"id":2}')
+    );
+
+    KafkaBus::listen(['products', 'orders']);
+
+    KafkaBus::assertCommitted('products');
+    KafkaBus::assertCommitted('orders');
+});
 ```
 
 ## Проверка коммитов
