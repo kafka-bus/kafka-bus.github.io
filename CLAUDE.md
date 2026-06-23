@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run docs:dev      # start dev server (hot-reload)
-npm run docs:build    # build static site to .vitepress/dist/
-npm run docs:preview  # preview the production build locally
+npm run dev      # start dev server (hot-reload)
+npm run build    # build static site to .vitepress/dist/
+npm run preview  # preview the production build locally
 ```
 
 ## Architecture
@@ -18,10 +18,10 @@ This is a **VitePress documentation site** for the [kafka-bus](https://github.co
 
 Every page exists in two locales that must stay in sync:
 
-| Locale | Root path | Language |
-|--------|-----------|----------|
-| English | `docs/` | `en-US` |
-| Russian | `ru/docs/` | `ru-RU` |
+| Locale  | Root path  | Language |
+|---------|------------|----------|
+| English | `docs/`    | `en-US`  |
+| Russian | `ru/docs/` | `ru-RU`  |
 
 When adding, removing, or renaming a page, mirror the change in both locale trees.
 

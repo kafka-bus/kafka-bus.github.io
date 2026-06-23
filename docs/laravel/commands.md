@@ -11,6 +11,7 @@
 | `kafka:offset:show {worker}`                 | Show current offsets for a worker              |
 | `kafka:offset:set {worker} {topic} {offset}` | Set an offset                                  |
 | `kafka:commit {key}`                         | Manually create a commit record in the database |
+| `kafka:commit:purge {--days=}`              | Delete committed records older than the retention period |
 
 ## kafka:consume
 
@@ -184,4 +185,42 @@ Otherwise, the commit is saved and the command reports success:
 
 ::: tip
 This command is intended for recovery scenarios — for example, when a message was processed outside the consumer or needs to be skipped permanently.
+:::
+
+## kafka:commit:purge
+
+Deletes committed records from the database that are older than the configured retention period. Useful for keeping the `kafka_bus_commits` table from growing indefinitely in long-running applications.
+
+```bash
+php artisan kafka:commit:purge
+```
+
+By default the retention period comes from `kafka-bus-commiter.purge.days` (default: `14`). Override it per-run with `--days`:
+
+```bash
+# Delete records older than 30 days
+php artisan kafka:commit:purge --days=30
+```
+
+The command prints how many records were removed:
+
+```
+ INFO  Purged 42 commit(s) older than 14 day(s).
+```
+
+::: info Redis source
+The Redis repository source does not support this command — it manages retention automatically via key TTL set at write time. Running `kafka:commit:purge` against a Redis source exits with an error:
+
+```
+The active repository source does not support purging.
+```
+:::
+
+::: tip Scheduling
+Register the command in your scheduler so old records are cleaned up automatically:
+
+```php
+// routes/console.php  (Laravel 11+)
+Schedule::command('kafka:commit:purge')->daily();
+```
 :::

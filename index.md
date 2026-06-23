@@ -411,7 +411,6 @@ $bus->onConnection('analytics')
   max-width: 1152px;
   margin: 0 auto;
   padding: 64px 24px 80px;
-  border-top: 1px solid var(--vp-c-divider);
 }
 
 .home-features-title {
