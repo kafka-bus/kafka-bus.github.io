@@ -11,6 +11,7 @@
 | `kafka:offset:show {worker}`                         | Текущие offset воркера                             |
 | `kafka:offset:set {worker} {topic} {offset}`         | Установка offset                                   |
 | `kafka:commit {key}`                                 | Ручное создание записи коммита в базе данных       |
+| `kafka:commit:purge {--days=}`                      | Удаление устаревших записей коммитов               |
 
 ## kafka:consume
 
@@ -184,4 +185,42 @@ php artisan kafka:commit order-12345
 
 ::: tip
 Эта команда предназначена для сценариев восстановления — например, когда сообщение было обработано вне консьюмера или его нужно постоянно пропускать.
+:::
+
+## kafka:commit:purge
+
+Удаляет из базы данных записи коммитов, которые старше настроенного срока хранения. Позволяет предотвратить неограниченный рост таблицы `kafka_bus_commits` в долгоживущих приложениях.
+
+```bash
+php artisan kafka:commit:purge
+```
+
+По умолчанию срок хранения берётся из `kafka-bus-commiter.purge.days` (по умолчанию: `14`). Можно переопределить для конкретного запуска через `--days`:
+
+```bash
+# Удалить записи старше 30 дней
+php artisan kafka:commit:purge --days=30
+```
+
+Команда выводит количество удалённых записей:
+
+```
+ INFO  Purged 42 commit(s) older than 14 day(s).
+```
+
+::: info Redis-источник
+Redis-источник не поддерживает эту команду — он управляет сроком хранения автоматически через TTL ключа, устанавливаемый при записи. Запуск `kafka:commit:purge` с Redis-источником завершится с ошибкой:
+
+```
+The active repository source does not support purging.
+```
+:::
+
+::: tip Планировщик
+Добавьте команду в планировщик, чтобы старые записи очищались автоматически:
+
+```php
+// routes/console.php  (Laravel 11+)
+Schedule::command('kafka:commit:purge')->daily();
+```
 :::
