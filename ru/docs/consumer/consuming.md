@@ -1,4 +1,4 @@
-﻿# Получение сообщений
+# Получение сообщений
 
 Consumer читает сообщения из Kafka и передаёт их обработчикам. Точка входа — `Bus::listener(string|array $workerName)`, возвращающая listener с блокирующим методом `listen()`.
 
@@ -10,7 +10,7 @@ Consumer читает сообщения из Kafka и передаёт их о�
 Автоопределение работает через рефлексию и поддерживает только два вида callable: замыкание (`Closure`) и объект с методом `__invoke()`. Для строковых callable вида `'Class::method'` или массива `[$obj, 'method']` тип не определяется — будет использована фабрика по умолчанию (`NativeMessageFactory`).
 :::
 
-### `ConsumerMessageInterface` — полный доступ к сообщению
+### Полный доступ к сообщению
 
 ```php
 use KafkaBus\Core\Interfaces\Consumers\Messages\ConsumerMessageInterface;
@@ -35,7 +35,7 @@ class ProductHandler
 `key()` возвращает `null`, если ключ пустой: rdkafka отдаёт `''` вместо `null`, и `ConsumerMessage` нормализует это значение.
 :::
 
-### `string` — только payload
+### Только payload
 
 ```php
 class ProductHandler
@@ -48,7 +48,7 @@ class ProductHandler
 }
 ```
 
-### `array` — payload как декодированный JSON
+### Payload как декодированный JSON
 
 ```php
 class ProductHandler
@@ -61,7 +61,7 @@ class ProductHandler
 }
 ```
 
-### `RdKafka\Message` — оригинальный объект rdkafka
+### Оригинальный объект rdkafka
 
 Когда нужен доступ к низкоуровневым метаданным: offset, partition, timestamp:
 

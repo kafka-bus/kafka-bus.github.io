@@ -1,4 +1,4 @@
-﻿# Commiter
+# Commiter
 
 Middleware-пакет для [kafka-bus](https://github.com/kafka-bus/kafka-bus), обеспечивающий идемпотентную обработку сообщений: отслеживает обработанные сообщения, предотвращает дубликаты и ограничивает количество попыток обработки.
 
@@ -89,7 +89,7 @@ new ConsumerCommiterMiddleware(
 
 ## Выбор репозитория
 
-### `IdempotencyMessageRepository` (рекомендуется)
+### По заголовку идемпотентности (рекомендуется)
 
 Читает заголовок `x-idempotency-key` и строит ключ как `"{header}-{topicName}"`. Одинаковый ключ идемпотентности в разных топиках считается разными событиями. При отсутствии заголовка используется `msgId()`, поэтому старые продюсеры без идемпотентности продолжают работать.
 
@@ -220,7 +220,7 @@ $workerRegistry = MemoryWorkerRegistry::make()
 Ставьте `ConsumerCommiterMiddleware` **первым** в списке. Тогда проверка дублей произойдёт до того, как отработают логирование, метрики и прочая обвязка.
 :::
 
-### `ArrayRepositorySource` для тестов
+### Пример для тестов
 
 ```php
 use KafkaBus\Commiter\Repositories\ArrayRepositorySource;
@@ -255,7 +255,7 @@ assert($source->get('order-42-fact.orders.1')?->commitedAt !== null);
 
 ## ProducerIdempotencyMiddleware
 
-### Реализуйте `HasIdempotency` на сообщении
+### Добавьте идемпотентность сообщению
 
 ```php
 use KafkaBus\Commiter\Interfaces\HasIdempotency;

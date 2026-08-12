@@ -43,7 +43,7 @@ final class HeadersMiddleware implements ProducerPipelineMiddleware
 
 `PipelineInterface` параметризован двумя типами: результатом `ProducerMessage` и классом обработчика `ProducerPipelineHandler`.
 
-### API `ProducerPipelineHandler`
+### Методы обработчика pipeline
 
 | Метод                                | Возвращает                  | Описание                                            |
 |--------------------------------------|-----------------------------|-----------------------------------------------------|
