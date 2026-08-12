@@ -89,9 +89,9 @@ new ConsumerCommiterMiddleware(
 
 ## Выбор репозитория
 
-### IdempotencyMessageRepository (рекомендуется)
+### `IdempotencyMessageRepository` (рекомендуется)
 
-Читает заголовок `x-idempotency-key` и строит ключ как `"{header}-{topicName}"`. Одинаковый ключ идемпотентности в разных топиках считается разными событиями. При отсутствии заголовка используется `msgId()`, поэтому старые продьюсеры без идемпотентности продолжают работать.
+Читает заголовок `x-idempotency-key` и строит ключ как `"{header}-{topicName}"`. Одинаковый ключ идемпотентности в разных топиках считается разными событиями. При отсутствии заголовка используется `msgId()`, поэтому старые продюсеры без идемпотентности продолжают работать.
 
 ```php
 use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
@@ -220,7 +220,7 @@ $workerRegistry = MemoryWorkerRegistry::make()
 Ставьте `ConsumerCommiterMiddleware` **первым** в списке. Тогда проверка дублей произойдёт до того, как отработают логирование, метрики и прочая обвязка.
 :::
 
-### ArrayRepositorySource для тестов
+### `ArrayRepositorySource` для тестов
 
 ```php
 use KafkaBus\Commiter\Repositories\ArrayRepositorySource;
@@ -240,7 +240,7 @@ assert($source->get('order-42-fact.orders.1')?->commitedAt !== null);
 
 **Проблема:** при повторных отправках, ре-публикации или межкластерном зеркалировании одно логическое событие приходит с другим `msgId()` и обходит проверку.
 
-**Решение:** ключ идемпотентности — стабильный идентификатор, который продьюсер кладёт в заголовок `x-idempotency-key`. Консьюмер использует его вместо `msgId()`.
+**Решение:** ключ идемпотентности — стабильный идентификатор, который продюсер кладёт в заголовок `x-idempotency-key`. Консьюмер использует его вместо `msgId()`.
 
 ### Выбор правильного ключа
 
@@ -255,7 +255,7 @@ assert($source->get('order-42-fact.orders.1')?->commitedAt !== null);
 
 ## ProducerIdempotencyMiddleware
 
-### Реализуйте HasIdempotency на сообщении
+### Реализуйте `HasIdempotency` на сообщении
 
 ```php
 use KafkaBus\Commiter\Interfaces\HasIdempotency;
@@ -280,7 +280,7 @@ final readonly class ProductCreatedMessage implements ProducerMessageInterface, 
 }
 ```
 
-### Подключите middleware к маршруту продьюсера
+### Подключите middleware к маршруту продюсера
 
 ```php
 use KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware;

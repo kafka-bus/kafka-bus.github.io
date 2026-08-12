@@ -7,7 +7,7 @@
 | `kafka:consume {worker*}`                    | Запуск долгоживущего процесса консьюмера              |
 | `kafka:consume:all {--expect=*}`             | Запуск всех воркеров в одном процессе                 |
 | `kafka:worker:list`                          | Список воркеров, топиков и обработчиков               |
-| `kafka:route:list`                           | Список маршрутов продьюсера                           |
+| `kafka:route:list`                           | Список маршрутов продюсера                           |
 | `kafka:offset:show {worker}`                 | Текущие offset воркера                                |
 | `kafka:offset:set {worker} {topic} {offset}` | Установка offset                                      |
 | `kafka:commit {key}`                         | Ручное создание записи коммита                        |
@@ -41,7 +41,7 @@ php artisan kafka:consume products orders   # несколько воркеро�
 :::
 
 ::: tip
-В продакшне оберните команду в Supervisor — см. [конфиг](/ru/docs/laravel/consumers#конфиг-supervisor).
+В продакшне оберните команду в Supervisor — см. [конфигурацию](/ru/docs/laravel/consumers#конфигурация-supervisor).
 :::
 
 ## kafka:consume:all
@@ -81,7 +81,7 @@ php artisan kafka:worker:list
 
 ## kafka:route:list
 
-Выводит зарегистрированные маршруты продьюсера.
+Выводит зарегистрированные маршруты продюсера.
 
 ```bash
 php artisan kafka:route:list
@@ -149,13 +149,13 @@ php artisan kafka:offset:set products products earliest
 php artisan kafka:offset:set products products latest
 ```
 
-### Установить конкретный offset
+### Установить конкретный оффсет
 
 ```bash
 php artisan kafka:offset:set products products 150
 ```
 
-### Установить offset для конкретной партиции
+### Установить оффсет для конкретной партиции
 
 ```bash
 php artisan kafka:offset:set products products 150 --partition=0

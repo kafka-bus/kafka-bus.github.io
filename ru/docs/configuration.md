@@ -10,7 +10,7 @@ ConnectionRegistry
 
 ## Подключения
 
-### Kafka Connection (основной драйвер)
+### Подключение к Kafka (основной драйвер)
 
 `KafkaConnectionConfig` — конфигурация подключения к реальному брокеру:
 
@@ -37,7 +37,7 @@ $connectionRegistry = new ConnectionRegistry([
 | `saslConfig` | `?UserCredentialsConfig`      | `null`       | Учётные данные SASL                                            |
 | `extra`      | `array<string, scalar\|null>` | `[]`         | Любые дополнительные параметры librdkafka                      |
 
-### Подключение с SASL аутентификацией
+### Подключение с SASL-аутентификацией
 
 Учётные данные задаются отдельным объектом `UserCredentialsConfig`, а не «сырыми» ключами:
 
@@ -97,7 +97,7 @@ $bus->onConnection('analytics')->publish($message);
 
 Подключения создаются лениво и кешируются: повторное обращение к одному имени возвращает тот же объект. Обращение к незарегистрированному имени бросает `ConnectionException` со списком доступных подключений.
 
-### Null Driver (для тестов)
+### Null-драйвер (для тестов)
 
 `NullConnection` принимает публикации и молча их отбрасывает `NullProducer`. Создание консьюмера на таком подключении бросает `ConsumerException` — читать через него нельзя.
 
@@ -148,14 +148,14 @@ $connectionRegistry = new ConnectionRegistry(
 
 Если для класса конфигурации не найден драйвер, выбрасывается `DriverException` со списком зарегистрированных классов.
 
-## Фильтрация параметров: producer vs consumer
+## Фильтрация параметров продюсера и консьюмера
 
-Ключевая деталь, о которой легко забыть: параметры подключения `KafkaConnectionConfig` применяются и к продьюсеру, и к консьюмеру целиком, **а вот дополнительные параметры маршрута или воркера фильтруются по белому списку**.
+Ключевая деталь, о которой легко забыть: параметры подключения `KafkaConnectionConfig` применяются и к продюсеру, и к консьюмеру целиком, **а вот дополнительные параметры маршрута или воркера фильтруются по белому списку**.
 
 `Options::getProducerOptions()` и `Options::getConsumerOptions()` пропускают только те ключи из `additionalOptions`, которые есть в соответствующем списке:
 
 ```php
-// Bus\Publishers\Router\Options — попадёт в продьюсер
+// Bus\Publishers\Router\Options — попадёт в продюсер
 new Options(additionalOptions: ['compression.codec' => 'gzip']);
 
 // Bus\Listeners\Workers\Options — будет молча отброшено:
@@ -167,7 +167,7 @@ new Options(additionalOptions: ['compression.codec' => 'gzip']);
 Неизвестный или «чужой» ключ не вызывает ошибку — он просто отбрасывается. Если параметр не применяется, первым делом проверьте, что он есть в нужном списке.
 :::
 
-::: details Разрешённые ключи продьюсера (Options::PRODUCER_OPTIONS)
+::: details Разрешённые ключи продюсера (Options::PRODUCER_OPTIONS)
 `transactional.id`, `transaction.timeout.ms`, `enable.idempotence`, `enable.gapless.guarantee`, `queue.buffering.max.messages`, `queue.buffering.max.kbytes`, `queue.buffering.max.ms`, `linger.ms`, `message.send.max.retries`, `retries`, `retry.backoff.ms`, `queue.buffering.backpressure.threshold`, `compression.codec`, `compression.type`, `batch.num.messages`, `batch.size`, `delivery.report.only.error`, `dr_cb`, `dr_msg_cb`, `sticky.partitioning.linger.ms`
 :::
 
@@ -194,7 +194,7 @@ new Options(additionalOptions: ['compression.codec' => 'gzip']);
 А вот числовой `0` теряется. Параметры вида `'linger.ms' => 0` или `'queue.buffering.max.ms' => 0` до брокера не дойдут — передавайте их строкой: `'linger.ms' => '0'`.
 :::
 
-## Сборка Bus
+## Сборка шины
 
 После настройки реестра подключений собирается `Bus` — центральный фасад пакета:
 
@@ -230,8 +230,8 @@ $bus = new Bus(
 | `security.protocol`    | подключение        | Протокол безопасности     | `SASL_PLAINTEXT`, `SSL`  |
 | `sasl.mechanisms`      | подключение        | Механизм SASL             | `PLAIN`, `SCRAM-SHA-256` |
 | `debug`                | подключение        | Отладочные логи rdkafka   | `consumer,cgrp,topic`    |
-| `compression.codec`    | продьюсер          | Сжатие                    | `snappy`, `gzip`, `lz4`  |
-| `linger.ms`            | продьюсер          | Задержка перед батчингом  | `10`                     |
+| `compression.codec`    | продюсер          | Сжатие                    | `snappy`, `gzip`, `lz4`  |
+| `linger.ms`            | продюсер          | Задержка перед батчингом  | `10`                     |
 | `group.id`             | консьюмер          | Группа потребителей       | `my-service`             |
 | `auto.offset.reset`    | консьюмер          | Начальная позиция         | `earliest`, `latest`     |
 | `max.poll.interval.ms` | консьюмер          | Таймаут опроса            | `300000`                 |

@@ -1,6 +1,6 @@
 # Конфигурация
 
-Конфигурация разнесена по двум файлам: `config/kafka-bus.php` (подключения, топики, продьюсеры, консьюмеры) и `config/kafka-bus-commiter.php` (хранилище идемпотентности).
+Конфигурация разнесена по двум файлам: `config/kafka-bus.php` (подключения, топики, продюсеры, консьюмеры) и `config/kafka-bus-commiter.php` (хранилище идемпотентности).
 
 ## Подключения
 
@@ -77,7 +77,7 @@
 Префикс приклеивается конкатенацией без разделителя. Точка в конце `KAFKA_PREFIX` обязательна — иначе получится `productionfact.products.1`.
 :::
 
-## Продьюсеры
+## Продюсеры
 
 ```php
 'producers' => [
@@ -211,9 +211,9 @@ global consumers.* / producers.*  →  настройки воркера / ма�
 
 Middleware выполняются в порядке итогового списка: глобальные первыми. Для `ConsumerCommiterMiddleware` это удачно — проверка дублей происходит раньше остальной обвязки.
 
-### Фильтрация additional_options
+### Фильтрация `additional_options`
 
-Параметры из `additional_options` проходят через белый список librdkafka: для продьюсера — `Options::PRODUCER_OPTIONS`, для консьюмера — `Options::CONSUMER_OPTIONS`. Ключи не из списка молча отбрасываются. Полный перечень — в разделе [Конфигурация ядра](/ru/docs/configuration#фильтрация-параметров-producer-vs-consumer).
+Параметры из `additional_options` проходят через белый список librdkafka: для продюсера — `Options::PRODUCER_OPTIONS`, для консьюмера — `Options::CONSUMER_OPTIONS`. Ключи не из списка молча отбрасываются. Полный перечень — в разделе [Конфигурация ядра](/ru/docs/configuration#фильтрация-параметров-продюсера-и-консьюмера).
 
 Параметры уровня подключения (`metadata.broker.list`, SASL, `debug`) задаются в секции `connections` и фильтрации не подлежат.
 

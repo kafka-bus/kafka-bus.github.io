@@ -1,4 +1,4 @@
-﻿# Consumer
+﻿# Получение сообщений
 
 Consumer читает сообщения из Kafka и передаёт их обработчикам. Точка входа — `Bus::listener(string|array $workerName)`, возвращающая listener с блокирующим методом `listen()`.
 
@@ -10,7 +10,7 @@ Consumer читает сообщения из Kafka и передаёт их о�
 Автоопределение работает через рефлексию и поддерживает только два вида callable: замыкание (`Closure`) и объект с методом `__invoke()`. Для строковых callable вида `'Class::method'` или массива `[$obj, 'method']` тип не определяется — будет использована фабрика по умолчанию (`NativeMessageFactory`).
 :::
 
-### ConsumerMessageInterface — полный доступ к сообщению
+### `ConsumerMessageInterface` — полный доступ к сообщению
 
 ```php
 use KafkaBus\Core\Interfaces\Consumers\Messages\ConsumerMessageInterface;
@@ -35,7 +35,7 @@ class ProductHandler
 `key()` возвращает `null`, если ключ пустой: rdkafka отдаёт `''` вместо `null`, и `ConsumerMessage` нормализует это значение.
 :::
 
-### string — только payload
+### `string` — только payload
 
 ```php
 class ProductHandler
@@ -48,7 +48,7 @@ class ProductHandler
 }
 ```
 
-### array — payload как декодированный JSON
+### `array` — payload как декодированный JSON
 
 ```php
 class ProductHandler
@@ -61,7 +61,7 @@ class ProductHandler
 }
 ```
 
-### RdKafka\Message — оригинальный объект rdkafka
+### `RdKafka\Message` — оригинальный объект rdkafka
 
 Когда нужен доступ к низкоуровневым метаданным: offset, partition, timestamp:
 
@@ -166,7 +166,7 @@ class ProductHandler
 }
 ```
 
-## Запуск Listener
+## Запуск слушателя
 
 ```php
 $listener = $bus->listener('default');
@@ -193,7 +193,7 @@ $bus->listener(['products', 'orders'])->listen();
 
 Воркеры объединяются в один процесс через `WorkerMerger`, при этом каждый сохраняет собственный набор middleware. Настройки подключения берутся у первого воркера в списке — подробнее в разделе [Архитектура](/ru/docs/architecture#несколько-воркеров-в-одном-процессе).
 
-### Graceful Shutdown через сигналы
+### Плавная остановка по сигналам
 
 ```php
 pcntl_async_signals(true);

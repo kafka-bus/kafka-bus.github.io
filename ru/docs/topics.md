@@ -1,6 +1,6 @@
 # Топики
 
-`TopicRegistry` — реестр, который маппит короткий логический ключ (например, `products`) на реальное имя топика в Kafka (`production.fact.products.1`). Все компоненты — продьюсер, консьюмер, commiter — работают с логическими ключами, а не с физическими именами.
+`TopicRegistry` — реестр, который маппит короткий логический ключ (например, `products`) на реальное имя топика в Kafka (`production.fact.products.1`). Все компоненты — продюсер, консьюмер, commiter — работают с логическими ключами, а не с физическими именами.
 
 Зачем нужен слой ключей:
 
@@ -95,7 +95,7 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->add(new RouteInfo('products', new ProductHandler())) // 'products' — логический ключ
     ->build();
 
-// Маршруты продьюсера
+// Маршруты продюсера
 $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->add(ProductMessage::class, 'products')
     ->build();

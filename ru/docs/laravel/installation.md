@@ -23,13 +23,13 @@ composer require kafka-bus/laravel-bridge
 | `KafkaBusServiceProvider`   | `BusInterface`, реестры подключений и топиков, Artisan-команды |
 | `CommiterServiceProvider`   | `RepositorySourceInterface`, `ConsumerMessageRepositoryInterface` |
 
-## Публикация конфига
+## Публикация конфигурации
 
 ```bash
 php artisan vendor:publish --tag=kafka-bus
 ```
 
-Создаётся `config/kafka-bus.php` с полной конфигурацией подключений, топиков, продьюсеров и консьюмеров.
+Создаётся `config/kafka-bus.php` с полной конфигурацией подключений, топиков, продюсеров и консьюмеров.
 
 ::: tip
 Публиковать конфиг необязательно: провайдер подмешивает значения по умолчанию через `mergeConfigFrom()`. Но без публикации нельзя задать топики и маршруты, так что на практике это первый шаг.
@@ -61,7 +61,7 @@ KAFKA_SECURITY_PROTOCOL=PLAINTEXT
 ```
 :::
 
-### SASL аутентификация
+### SASL-аутентификация
 
 ```dotenv
 KAFKA_BROKER_LIST=pkc-xxx.us-east-1.aws.confluent.cloud:9092
@@ -118,7 +118,7 @@ Middleware резолвятся через контейнер Laravel, поэт�
 # Список зарегистрированных воркеров
 php artisan kafka:worker:list
 
-# Список маршрутов продьюсера
+# Список маршрутов продюсера
 php artisan kafka:route:list
 ```
 

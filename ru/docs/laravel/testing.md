@@ -2,7 +2,7 @@
 
 Фасад `KafkaBus` поставляется с полноценной fake-заглушкой, работающей аналогично `Event::fake()` или `Mail::fake()`.
 
-## Активация fake
+## Подмена шины в тестах
 
 ```php
 use KafkaBus\Laravel\Facades\KafkaBus;
@@ -80,7 +80,7 @@ expect($messages[0]->headers)->toHaveKey('x-idempotency-key');
 Для класса без зарегистрированного маршрута метод вернёт пустой массив — а `assertNotPublished()` для него всегда пройдёт, даже если публикация была бы невозможна. Проверяйте маршруты командой `kafka:route:list`.
 :::
 
-## Тестирование Consumer
+## Тестирование консьюмера
 
 `addMessage()` добавляет `RdKafka\Message` в fake-подключение, а `listen()` запускает полный pipeline консьюмера — middleware, маршрутизацию, обработчик, коммит — без реального брокера.
 
@@ -227,7 +227,7 @@ expect($committed[0]->headers())->toHaveKey('x-idempotency-key');
 expect($committed[0]->original()->offset)->toBe(0);
 ```
 
-## Сводка API FakeBus
+## Методы `FakeBus`
 
 | Метод                                      | Назначение                                     |
 |--------------------------------------------|------------------------------------------------|
@@ -245,7 +245,7 @@ expect($committed[0]->original()->offset)->toBe(0);
 | `assertNothingCommitted()`                 | Ничего не коммитилось                          |
 | `getCommitted($topicKey)`                  | `list<ConsumerMessageInterface>` для топика    |
 
-## Тестовое окружение (.env.testing)
+## Тестовое окружение
 
 Настройте `null` подключение для запуска тестов без брокера:
 

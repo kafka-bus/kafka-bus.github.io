@@ -49,7 +49,7 @@ Bus
 
 `Thread` — не системный поток ОС, а логическая обёртка над подключением. `ThreadRegistry` создаёт их лениво и кеширует по имени подключения, так что повторный `onConnection('analytics')` вернёт тот же объект.
 
-Важное следствие: `Publisher` создаётся сразу в конструкторе `Thread`, а `Listener` — только при вызове `listener()`. Таблица маршрутов продьюсера `PublisherRoutes` при этом общая для всех подключений: она передаётся в `PublisherFactory` один раз.
+Важное следствие: `Publisher` создаётся сразу в конструкторе `Thread`, а `Listener` — только при вызове `listener()`. Таблица маршрутов продюсера `PublisherRoutes` при этом общая для всех подключений: она передаётся в `PublisherFactory` один раз.
 
 ## Путь исходящего сообщения
 
@@ -67,7 +67,7 @@ ProducerStream
 Producer (rdkafka) → produce() → poll() → flush()
 ```
 
-`PublisherRouter` кеширует `ProducerStream` по классу сообщения, поэтому продьюсер и его соединение создаются один раз на класс.
+`PublisherRouter` кеширует `ProducerStream` по классу сообщения, поэтому продюсер и его соединение создаются один раз на класс.
 
 ## Путь входящего сообщения
 
@@ -97,7 +97,7 @@ ConsumerRouter  ─── находит Route по имени топика
 
 Два pipeline — не дублирование: первый видит сырое сообщение Kafka и общий для всех топиков воркера, второй видит уже десериализованный объект и настраивается для каждого топика отдельно.
 
-## Pipeline (Middleware)
+## Pipeline и middleware
 
 Middleware можно добавить на трёх уровнях:
 
@@ -105,7 +105,7 @@ Middleware можно добавить на трёх уровнях:
 |------------------|---------------------------------------|-------------------------------|------------------------------|
 | Воркер           | `Workers\Options::$middleware`        | `ConsumerPipelineMiddleware`  | `ConsumerMessageInterface`   |
 | Маршрут консьюмера | `RouteInfo::$middleware`            | `MessagePipelineMiddleware`   | результат `MessageFactory`   |
-| Маршрут продьюсера | `Publishers\Router\Options::$middleware` | `ProducerPipelineMiddleware` | `ProducerMessageInterface` |
+| Маршрут продюсера | `Publishers\Router\Options::$middleware` | `ProducerPipelineMiddleware` | `ProducerMessageInterface` |
 
 ### Как работает Pipeline
 
@@ -137,7 +137,7 @@ public function handle(PipelineInterface $pipeline): PipelineInterface
 ::: warning Прерывание цепочки
 Если middleware вернёт `$pipeline` **без** вызова `continue()`, обработчик не выполнится, а `result()` останется `null`.
 
-Для консьюмера это значит «сообщение пропущено» (именно так работает `ConsumerCommiterMiddleware` для дублей). Для продьюсера — сообщение **не будет отправлено**: `ProducerStream` пропускает `null`-результаты.
+Для консьюмера это значит «сообщение пропущено» (именно так работает `ConsumerCommiterMiddleware` для дублей). Для продюсера — сообщение **не будет отправлено**: `ProducerStream` пропускает `null`-результаты.
 :::
 
 ## Устойчивость к ошибкам

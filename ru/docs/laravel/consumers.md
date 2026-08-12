@@ -1,4 +1,4 @@
-﻿# Consumer
+﻿# Получение сообщений
 
 ## Создание обработчика
 
@@ -56,7 +56,7 @@ public function __invoke(\RdKafka\Message $message): void { ... }
 
 Подробнее о механизме автоопределения — в разделе [Получение сообщений](/ru/docs/consumer/consuming#порядок-разрешения-фабрики).
 
-## Регистрация в конфиге
+## Регистрация в конфигурации
 
 ```php
 // config/kafka-bus.php
@@ -69,7 +69,7 @@ public function __invoke(\RdKafka\Message $message): void { ... }
 
 Имя воркера здесь совпадает с ключом топика. Другие форматы — в разделе [Конфигурация](/ru/docs/laravel/configuration#консьюмеры).
 
-## Обработчик с DomainMessage
+## Обработчик с `DomainMessage`
 
 При использовании `kafka-bus/messages` добавьте атрибут `#[MessageFactory]`:
 
@@ -141,7 +141,7 @@ php artisan kafka:consume:all
 php artisan kafka:consume:all --expect=products-analytics
 ```
 
-### Конфиг Supervisor
+### Конфигурация Supervisor
 
 ```ini
 [program:kafka-products]

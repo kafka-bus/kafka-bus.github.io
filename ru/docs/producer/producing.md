@@ -1,8 +1,8 @@
-# Producer
+# Отправка сообщений
 
 Producer отвечает за отправку сообщений в Kafka. На уровне ядра это `Bus::publish()`, который принимает объект, реализующий `ProducerMessageInterface`.
 
-## Основном интерфейс
+## Основной интерфейс
 
 Единственный обязательный метод — сериализация в строку:
 
@@ -122,7 +122,7 @@ public function getPartition(): int
 | `key`              | `HasKey::getKey()`                           | `null`                  |
 | `headers`          | `HasHeaders::getHeaders()` + `withHeader()`  | `[]`                    |
 | `partition`        | `HasPartition::getPartition()`               | `RD_KAFKA_PARTITION_UA` |
-| `topic`            | маршрут продьюсера                           | — (обязателен)          |
+| `topic`            | маршрут продюсера                           | — (обязателен)          |
 
 ## Пакетная публикация
 

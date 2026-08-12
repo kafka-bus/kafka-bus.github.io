@@ -1,4 +1,4 @@
-# Producer
+# Отправка сообщений
 
 ## Создание класса сообщения
 
@@ -56,9 +56,9 @@ final readonly class ProductMessage implements ProducerMessageInterface, HasHead
 ],
 ```
 
-Подробнее об интерфейсах `HasKey`, `HasHeaders`, `HasPartition` — в разделе [Producer ядра](/ru/docs/producer/producing#опциональные-интерфеисы-сообщении).
+Подробнее об интерфейсах `HasKey`, `HasHeaders`, `HasPartition` — в разделе [Отправка сообщений](/ru/docs/producer/producing#опциональные-интерфеисы-сообщении).
 
-## Публикация через Facade
+## Публикация через фасад
 
 ```php
 use KafkaBus\Laravel\Facades\KafkaBus;
@@ -70,7 +70,7 @@ KafkaBus::publish(new ProductMessage(
 ));
 ```
 
-## Публикация через Dependency Injection
+## Публикация через внедрение зависимостей
 
 Рекомендуется для Action/Service классов — упрощает тестирование:
 
@@ -124,7 +124,7 @@ KafkaBus::onConnection('analytics')->publish($message);
 $this->bus->onConnection('analytics')->publish($message);
 ```
 
-Маршруты продьюсера при этом общие для всех подключений — меняется только целевой брокер.
+Маршруты продюсера при этом общие для всех подключений — меняется только целевой брокер.
 
 ## Интеграция с kafka-bus/messages
 

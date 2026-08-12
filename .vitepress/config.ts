@@ -129,18 +129,18 @@ export default defineConfig({
             { text: 'Архитектура', link: '/ru/docs/architecture' },
             { text: 'Топики', link: '/ru/docs/topics' },
             {
-              text: 'Producer',
+              text: 'Продюсер',
               items: [
-                { text: 'Отправка сообщений', link: '/ru/docs/producer/producing' },
+                { text: 'Отправка', link: '/ru/docs/producer/producing' },
                 { text: 'Настройка', link: '/ru/docs/producer/configure' },
                 { text: 'Pipeline', link: '/ru/docs/producer/pipeline' },
                 { text: 'Тестирование', link: '/ru/docs/producer/testing' },
               ],
             },
             {
-              text: 'Consumer',
+              text: 'Консьюмер',
               items: [
-                { text: 'Получение сообщений', link: '/ru/docs/consumer/consuming' },
+                { text: 'Получение', link: '/ru/docs/consumer/consuming' },
                 { text: 'Настройка', link: '/ru/docs/consumer/configure' },
                 { text: 'Pipeline', link: '/ru/docs/consumer/pipeline' },
                 { text: 'Тестирование', link: '/ru/docs/consumer/testing' },

@@ -11,7 +11,7 @@ ProducerMessageInterface
                                  ProducerMessage → Producer
 ```
 
-## Producer Middleware
+## Middleware продюсера
 
 ### Интерфейс
 
@@ -43,7 +43,7 @@ final class HeadersMiddleware implements ProducerPipelineMiddleware
 
 `PipelineInterface` параметризован двумя типами: результатом `ProducerMessage` и классом обработчика `ProducerPipelineHandler`.
 
-### API ProducerPipelineHandler
+### API `ProducerPipelineHandler`
 
 | Метод                                | Возвращает                  | Описание                                            |
 |--------------------------------------|-----------------------------|-----------------------------------------------------|
@@ -113,7 +113,7 @@ new Options(middleware: [
 
 Учтите: при публикации батча pipeline запускается **для каждого сообщения отдельно**, но экземпляр middleware переиспользуется. Не храните в нём состояние конкретного сообщения.
 
-### Подключение к маршруту продьюсера
+### Подключение к маршруту продюсера
 
 ```php
 use KafkaBus\Core\Bus\Publishers\Router\Options;
@@ -131,7 +131,7 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
 ```
 
 ::: tip
-Глобального middleware для всех маршрутов на уровне ядра нет — он задаётся для каждого маршрута отдельно. В интеграции с Laravel общий список из `producers.middleware` автоматически подмешивается в каждый маршрут; см. [Конфигурация Laravel](/ru/docs/laravel/configuration#продьюсеры).
+Глобального middleware для всех маршрутов на уровне ядра нет — он задаётся для каждого маршрута отдельно. В интеграции с Laravel общий список из `producers.middleware` автоматически подмешивается в каждый маршрут; см. [Конфигурация Laravel](/ru/docs/laravel/configuration#продюсеры).
 :::
 
 ## Встроенные middleware из экосистемы

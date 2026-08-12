@@ -1,4 +1,4 @@
-# Настройка Producer
+# Настройка продюсера
 
 ## Поток публикации
 
@@ -79,22 +79,22 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
-### Параметры Options
+### Параметры `Options`
 
 | Параметр            | Тип                            | По умолчанию | Описание                                              |
 |---------------------|--------------------------------|--------------|-------------------------------------------------------|
-| `additionalOptions` | `array<string, scalar\|null>`  | `[]`         | Параметры librdkafka для продьюсера этого маршрута    |
+| `additionalOptions` | `array<string, scalar\|null>`  | `[]`         | Параметры librdkafka для продюсера этого маршрута    |
 | `middleware`        | `list<ProducerPipelineMiddleware>` | `[]`     | Middleware, применяемые к сообщениям этого маршрута   |
 | `flushTimeout`      | `int`                          | `5000`       | Таймаут `poll()` и одной попытки `flush()`, мс        |
 | `flushRetries`      | `int`                          | `10`         | Количество попыток `flush()` перед исключением        |
 
 ::: warning Фильтрация additionalOptions
-`additionalOptions` пропускаются через белый список `Options::PRODUCER_OPTIONS`. Ключи, которых там нет (например, `group.id` или `auto.offset.reset`), молча отбрасываются. Полный список — в разделе [Конфигурация](/ru/docs/configuration#фильтрация-параметров-producer-vs-consumer).
+`additionalOptions` пропускаются через белый список `Options::PRODUCER_OPTIONS`. Ключи, которых там нет (например, `group.id` или `auto.offset.reset`), молча отбрасываются. Полный список — в разделе [Конфигурация](/ru/docs/configuration#фильтрация-параметров-продюсера-и-консьюмера).
 
 Параметры уровня подключения (`metadata.broker.list`, SASL и т. п.) задаются в `KafkaConnectionConfig` и фильтрации не подлежат.
 :::
 
-## Flush
+## Сброс буфера (flush)
 
 После `producev()` библиотека `rdkafka` доставляет сообщения брокеру асинхронно. `Producer` делает это явно:
 
@@ -109,7 +109,7 @@ $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
 | `flushRetries` | `10`                | `5`                    | Количество попыток перед ошибкой |
 
 ::: tip Флаг RD_KAFKA_MSG_F_BLOCK
-Продьюсер блокируется, когда внутренняя очередь librdkafka переполнена, вместо того чтобы отбрасывать сообщения. Это исключает «тихую» потерю при всплеске нагрузки, но означает, что `publish()` может подвиснуть — учитывайте это в HTTP-обработчиках.
+Продюсер блокируется, когда внутренняя очередь librdkafka переполнена, вместо того чтобы отбрасывать сообщения. Это исключает «тихую» потерю при всплеске нагрузки, но означает, что `publish()` может подвиснуть — учитывайте это в HTTP-обработчиках.
 :::
 
 ::: warning

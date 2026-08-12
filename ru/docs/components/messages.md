@@ -201,7 +201,7 @@ $bus->publish($message);
 
 Для типизации создайте подкласс с кастерами — как у обычного `Payload`.
 
-### Получение JsonMessage
+### Получение `JsonMessage`
 
 ```php
 use KafkaBus\Core\Consumers\Attributes\MessageFactory;
