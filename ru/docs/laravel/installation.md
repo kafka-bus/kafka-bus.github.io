@@ -1,12 +1,14 @@
-﻿# Установка
+# Установка
 
 ## Требования
 
-| Зависимость   | Версия                         |
-|---------------|--------------------------------|
-| PHP           | `^8.2`                         |
-| Laravel       | `^10.0 \|\| ^11.0 \|\| ^12.0` |
-| `ext-rdkafka` | любая актуальная               |
+| Зависимость   | Версия                                    |
+|---------------|-------------------------------------------|
+| PHP           | `^8.2`                                    |
+| Laravel       | `^10.0 \|\| ^11.0 \|\| ^12.0 \|\| ^13.0` |
+| `ext-rdkafka` | любая актуальная                          |
+
+Пакет тянет за собой `kafka-bus/core`, `kafka-bus/commiter` и `kafka-bus/messages` — устанавливать их отдельно не нужно.
 
 ## Установка
 
@@ -14,15 +16,24 @@
 composer require kafka-bus/laravel-bridge
 ```
 
-Пакет использует автодискавери — `KafkaBusServiceProvider` регистрируется автоматически.
+Пакет использует автодискавери. Регистрируются **два** провайдера:
 
-## Публикация конфига
+| Провайдер                   | Что регистрирует                                             |
+|-----------------------------|--------------------------------------------------------------|
+| `KafkaBusServiceProvider`   | `BusInterface`, реестры подключений и топиков, Artisan-команды |
+| `CommiterServiceProvider`   | `RepositorySourceInterface`, `ConsumerMessageRepositoryInterface` |
+
+## Публикация конфигурации
 
 ```bash
 php artisan vendor:publish --tag=kafka-bus
 ```
 
-Создаётся `config/kafka-bus.php` с полной конфигурацией подключений, топиков, продьюсеров и консьюмеров.
+Создаётся `config/kafka-bus.php` с полной конфигурацией подключений, топиков, продюсеров и консьюмеров.
+
+::: tip
+Публиковать конфиг необязательно: провайдер подмешивает значения по умолчанию через `mergeConfigFrom()`. Но без публикации нельзя задать топики и маршруты, так что на практике это первый шаг.
+:::
 
 ## Настройка .env
 
@@ -42,7 +53,15 @@ KAFKA_CONSUMER_GROUP_ID=my-service
 KAFKA_CONNECTION=kafka
 ```
 
-### SASL аутентификация
+::: warning Брокер без аутентификации
+Конфиг по умолчанию задаёт `KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT`. Для локального брокера без SASL переопределите протокол, иначе подключение не установится:
+
+```dotenv
+KAFKA_SECURITY_PROTOCOL=PLAINTEXT
+```
+:::
+
+### SASL-аутентификация
 
 ```dotenv
 KAFKA_BROKER_LIST=pkc-xxx.us-east-1.aws.confluent.cloud:9092
@@ -63,7 +82,7 @@ php artisan migrate
 
 Создаётся:
 - `config/kafka-bus-commiter.php`
-- Миграция для таблицы `kafka_bus_commits`
+- миграция таблицы `kafka_bus_commits` (колонки `key`, `number`, `commited_at`)
 
 Включите middleware в конфиге:
 
@@ -83,7 +102,15 @@ php artisan migrate
 ],
 ```
 
-Подробнее — в разделе [Commiter](/ru/docs/components/commiter).
+Middleware резолвятся через контейнер Laravel, поэтому `ConsumerCommiterMiddleware` автоматически получит настроенный репозиторий из `CommiterServiceProvider`.
+
+Подробнее — в разделах [Commiter](/ru/docs/components/commiter) и [Конфигурация](/ru/docs/laravel/configuration#commiter).
+
+## Поддержка Octane
+
+Если установлен `laravel/octane`, провайдер подписывается на событие `WorkerStarting` и «прогревает» `BusInterface` при старте воркера. Дополнительная настройка не требуется.
+
+Пакет `laravel/octane` указан в `suggest` — ставить его только ради kafka-bus не нужно.
 
 ## Проверка установки
 
@@ -91,9 +118,11 @@ php artisan migrate
 # Список зарегистрированных воркеров
 php artisan kafka:worker:list
 
-# Список маршрутов продьюсера
+# Список маршрутов продюсера
 php artisan kafka:route:list
 ```
+
+Обе команды читают конфиг и резолвят обработчики через контейнер, поэтому опечатка в имени класса обнаружится сразу.
 
 ## Что дальше
 

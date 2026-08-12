@@ -1,0 +1,6 @@
+[submodule ".packages/kafka-bus"]
+	path = .packages/kafka-bus
+	url = git@github.com:kafka-bus/kafka-bus.git
+[submodule ".packages/laravel-bridge"]
+	path = .packages/laravel-bridge
+	url = git@github.com:kafka-bus/laravel-bridge.git

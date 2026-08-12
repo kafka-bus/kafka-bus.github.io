@@ -18,7 +18,7 @@ features:
     title: kafka-bus/core
     details: Ядро экосистемы. Фасад Bus с поддержкой множественных подключений, маршрутизацией топиков, middleware pipeline и встроенными fake-заглушками для тестирования.
     link: /ru/docs/installation
-    linkText: Документация Core
+    linkText: Документация ядра
 
   - icon: 🟥
     title: kafka-bus/laravel-bridge
@@ -43,18 +43,18 @@ features:
 <h2 class="home-features-title">Возможности</h2>
 <p class="home-features-subtitle">Всё необходимое для надёжной работы с Kafka на PHP</p>
 
-<FeatureCard icon="🗂️" title="Topic Registry и маршрутизация" details="Маппинг коротких логических ключей на физические имена топиков — единый источник истины для всего приложения. ConsumerRoutesBuilder маршрутизирует входящие сообщения к обработчикам по ключу; PublisherRoutesBuilder автоматически определяет целевой топик по классу сообщения." link="/ru/docs/topics">
+<FeatureCard icon="🗂️" title="Реестр топиков и маршрутизация" details="Маппинг коротких логических ключей на физические имена топиков — единый источник истины для всего приложения. ConsumerRoutesBuilder маршрутизирует входящие сообщения к обработчикам по ключу; PublisherRoutesBuilder автоматически определяет целевой топик по классу сообщения." link="/ru/docs/topics">
 
 ::: code-group
 
-```php [Topics]
+```php [Топики]
 $topicRegistry = (new TopicRegistry())
     ->add(new Topic('production.fact.products.1',         'products'))
     ->add(new Topic('production.fact.orders.1',           'orders'))
     ->add(new Topic('production.event.user-registered.1', 'user-registered'));
 ```
 
-```php [Consumer]
+```php [Консьюмер]
 // Маппинг логического ключа → обработчик
 $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->add(new RouteInfo('products', new ProductHandler()))
@@ -65,7 +65,7 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
 $bus->listener('default')->listen();
 ```
 
-```php [Producer]
+```php [Продюсер]
 // Маппинг класса сообщения → логический ключ
 $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->add(ProductCreatedMessage::class, 'products')
@@ -81,11 +81,11 @@ $bus->publish(new OrderCreatedMessage($order));
 
 </FeatureCard>
 
-<FeatureCard icon="⛓️" title="Middleware Pipeline" details="Подключайте middleware глобально для воркера — каждое сообщение в каждом топике проходит через цепочку. Каждый middleware получает pipeline и решает, передавать ли управление следующему звену." link="/ru/docs/consumer/pipeline">
+<FeatureCard icon="⛓️" title="Pipeline из middleware" details="Подключайте middleware глобально для воркера — каждое сообщение в каждом топике проходит через цепочку. Каждый middleware получает pipeline и решает, передавать ли управление следующему звену." link="/ru/docs/consumer/pipeline">
 
 ::: code-group
 
-```php [Consumer]
+```php [Консьюмер]
 use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineHandler;
 use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineMiddleware;
 use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
@@ -110,7 +110,7 @@ class LoggingMiddleware implements ConsumerPipelineMiddleware
 }
 ```
 
-```php [Producer]
+```php [Продюсер]
 use KafkaBus\Commiter\Interfaces\HasIdempotency;
 use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
 use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
@@ -219,7 +219,7 @@ final readonly class OrderCreatedMessage implements ProducerMessageInterface, Ha
 
 </FeatureCard>
 
-<FeatureCard icon="🎯" title="Умный резолвинг обработчиков" details="Объявите нужный тип — шина его доставит. Обработчики получают ConsumerMessageInterface для полного доступа, string для сырого payload, array для декодированного JSON или RdKafka\Message для метаданных. Атрибут #[MessageFactory] для автоматической гидратации типизированных объектов." link="/ru/docs/consumer/consuming">
+<FeatureCard icon="🎯" title="Гибкая типизация обработчиков" details="Объявите нужный тип — шина его доставит. Обработчики получают ConsumerMessageInterface для полного доступа, string для сырого payload, array для декодированного JSON или RdKafka\Message для метаданных. Атрибут #[MessageFactory] для автоматической гидратации типизированных объектов." link="/ru/docs/consumer/consuming">
 
 ::: code-group
 
@@ -261,7 +261,7 @@ class AuditHandler
 
 ::: code-group
 
-```php [Consumer]
+```php [Консьюмер]
 // Подключение к pipeline воркера
 new ConsumerCommiterMiddleware(
     repository: new IdempotencyMessageRepository(
@@ -272,7 +272,7 @@ new ConsumerCommiterMiddleware(
 )
 ```
 
-```php [Producer]
+```php [Продюсер]
 // Реализация HasIdempotency на сообщении
 final readonly class ProductCreatedMessage implements HasIdempotency
 {
@@ -318,7 +318,7 @@ $bus->onConnection('analytics')->publish(new PageViewEvent()); // analytics
 
 ::: code-group
 
-```php [Setup]
+```php [Настройка]
 // config/kafka-bus.php — готов к использованию после публикации
 'connections' => [
     'kafka' => [
@@ -340,7 +340,7 @@ KafkaBus::fake();
 KafkaBus::assertPublished(ProductCreatedMessage::class);
 ```
 
-```php [Producer Тесты]
+```php [Тесты продюсера]
 it('публикует сообщение при создании продукта', function () {
     KafkaBus::fake();
 
@@ -356,7 +356,7 @@ it('публикует сообщение при создании продукт
 });
 ```
 
-```php [Consumer Тесты]
+```php [Тесты консьюмера]
 it('сохраняет продукт при получении сообщения', function () {
     KafkaBus::fake();
 

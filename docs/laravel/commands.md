@@ -1,62 +1,67 @@
-# Artisan Commands
+# Commands
 
 ## Command Overview
 
-| Command                                      | Description                                    |
-|----------------------------------------------|------------------------------------------------|
-| `kafka:consume {worker*}`                    | Start a long-running consumer process          |
-| `kafka:consume:all {--expect=*}`             | Start consumers for all configured workers     |
-| `kafka:worker:list`                          | List workers, topics, and handlers             |
-| `kafka:route:list`                           | List producer routes                           |
-| `kafka:offset:show {worker}`                 | Show current offsets for a worker              |
-| `kafka:offset:set {worker} {topic} {offset}` | Set an offset                                  |
-| `kafka:commit {key}`                         | Manually create a commit record in the database |
-| `kafka:commit:purge {--days=}`              | Delete committed records older than the retention period |
+| Command                                        | Description                                              |
+|--------------------------------------------------|---------------------------------------------------------|
+| `kafka:consume {worker*}`                     | Starts a long-running consumer process                     |
+| `kafka:consume:all {--expect=*}`             | Starts every worker in a single process                    |
+| `kafka:worker:list`                          | Lists workers, topics, and handlers                         |
+| `kafka:route:list`                           | Lists producer routes                                        |
+| `kafka:offset:show {worker}`                 | Shows a worker's current offsets                             |
+| `kafka:offset:set {worker} {topic} {offset}` | Sets an offset                                                |
+| `kafka:commit {key}`                         | Manually creates a commit record                             |
+| `kafka:commit:purge {--days=}`               | Deletes stale commit records                                  |
+
+Commands are only registered when running in the console.
 
 ## kafka:consume
 
-::: info Available since `kafka-bus/laravel-bridge:^1.2`
-Support for multiple worker names was added in version 1.2.
-:::
-
-Starts a blocking read loop for one or more workers. The process continues until it receives `SIGINT` or `SIGTERM`.
+Starts the blocking read loop for the given workers. The process keeps running until it receives `SIGTERM`, `SIGINT`, or `SIGQUIT`.
 
 ```bash
-# Single worker
 php artisan kafka:consume products
-
-# Multiple workers in one process
-php artisan kafka:consume products orders
-php artisan kafka:consume products orders notifications
+php artisan kafka:consume default
+php artisan kafka:consume products orders   # multiple workers in one process
 ```
 
-When multiple worker names are given, their topics are merged into a single consumer stream.
+The command implements `SignalableCommandInterface`: on a signal, `forceStop()` is called, the current message finishes processing and gets committed, and only then does the process exit cleanly.
+
+Exit codes:
+
+| Code | Situation                                                            |
+|-------|--------------------------------------------------------------------|
+| `0` | The loop finished cleanly (`Consumer finished`)                        |
+| `1` | No worker was passed, or a `ConsumerException` occurred                |
+
+On error, the message is written both to `LoggerInterface::error` and to the command's output.
+
+::: warning
+The command does **not** catch `MessageConsumerNotHandledException` exceptions from the handler — they propagate outward and crash the process. This is intentional: a restart via Supervisor brings the consumer back to the unprocessed message.
+:::
 
 ::: tip
-For production, wrap the command in Supervisor to ensure automatic restarts on failure.
+In production, wrap the command in Supervisor — see [the config](/docs/laravel/consumers#supervisor-configuration).
 :::
 
 ## kafka:consume:all
 
-::: info Available since `kafka-bus/laravel-bridge:^1.2`
-:::
-
-Starts consumers for **all** workers declared in `config/kafka-bus.php` under `consumers.workers`, in a single process. Use `--expect` to exclude specific workers.
+Starts every worker from `kafka-bus.consumers.workers` in a single process.
 
 ```bash
-# Start all workers
 php artisan kafka:consume:all
 
-# Start all workers except "orders"
-php artisan kafka:consume:all --expect=orders
-
-# Exclude multiple workers
-php artisan kafka:consume:all --expect=orders --expect=notifications
+# Exclude specific workers
+php artisan kafka:consume:all --expect=products-analytics --expect=legacy
 ```
+
+::: warning
+All workers are merged into a single consumer, and connection settings are taken from the first one. If workers have different `group.id`s or commit modes, only the first worker's configuration applies — run such workers as separate processes instead.
+:::
 
 ## kafka:worker:list
 
-Prints the full list of registered workers with their configuration.
+Prints the full list of registered workers along with their configuration.
 
 ```bash
 php artisan kafka:worker:list
@@ -64,7 +69,7 @@ php artisan kafka:worker:list
 
 ```
 +----------+-----------+----------------------------+------------------------------------------+---------------------+------------------+
-| Worker   | Topic key | Topic name                 | Handler                                  | Consumer Middleware | Route Middleware  |
+| Worker   | Topic key | Topic name                 | Handler                                  | Consumer Middleware | Route Middleware |
 +----------+-----------+----------------------------+------------------------------------------+---------------------+------------------+
 | default  | products  | production.fact.products.1 | App\Kafka\Consumers\ProductsConsumer     |                     |                  |
 | default  | orders    | production.fact.orders.1   | App\Kafka\Consumers\OrdersConsumer       | ConsumerCommiter... | TenantMiddleware |
@@ -72,7 +77,7 @@ php artisan kafka:worker:list
 +----------+-----------+----------------------------+------------------------------------------+---------------------+------------------+
 ```
 
-Use this for a quick sanity check that all workers are configured correctly after changing the config.
+One row per "worker + topic" pair. The command resolves handlers and middleware through the container, so it also confirms every class exists and can be instantiated. If there are no workers, it prints a `No workers registered` warning.
 
 ## kafka:route:list
 
@@ -83,17 +88,17 @@ php artisan kafka:route:list
 ```
 
 ```
-+------------------------------------------+-----------+----------------------------+------------+
-| Message                                  | Topic key | Topic name                 | Middleware |
-+------------------------------------------+-----------+----------------------------+------------+
-| App\Kafka\Messages\ProductMessage        | products  | production.fact.products.1 | 0          |
-| App\Kafka\Messages\OrderMessage          | orders    | production.fact.orders.1   | 1          |
-+------------------------------------------+-----------+----------------------------+------------+
++------------------------------------------+-----------+----------------------------+---------------------------------+
+| Message                                  | Topic key | Topic name                 | Middleware                      |
++------------------------------------------+-----------+----------------------------+---------------------------------+
+| App\Kafka\Messages\ProductMessage         | products  | production.fact.products.1 |                                 |
+| App\Kafka\Messages\OrderMessage           | orders    | production.fact.orders.1   | ProducerIdempotencyMiddleware   |
++------------------------------------------+-----------+----------------------------+---------------------------------+
 ```
 
 ## kafka:offset:show
 
-Shows the current, minimum, and maximum offsets for each partition of each topic in the worker.
+Shows the current, minimum, and maximum offset for every partition of every topic a worker listens to.
 
 ```bash
 php artisan kafka:offset:show products
@@ -108,39 +113,55 @@ php artisan kafka:offset:show products
 +-----------+----------------------------+-----------+---------+-----+-----+
 ```
 
-Useful for monitoring consumer lag. Lag = `Max - Current`.
+Handy for monitoring consumer lag. Lag = `Max - Current`.
+
+::: tip
+A partition of `n/a` with `-1` values means the topic hasn't been created on the cluster yet, or has no metadata. That's normal for a fresh environment.
+:::
 
 ## kafka:offset:set
 
-Sets the committed offset for a worker's topic. Allows you to re-read messages or skip an accumulated backlog.
+Sets the committed offset for a worker's topic. Lets you re-read messages or skip an accumulated backlog.
 
 ```bash
 kafka:offset:set {workerName} {topicKey} {offset} {--partition=}
 ```
 
-### Go to the first message (re-read everything)
+The `offset` argument accepts:
+
+| Value                              | Action                             |
+|----------------------------------------|-----------------------------------|
+| `earliest`, `early`, `beginning`  | The lowest available offset           |
+| `latest`, `end`                   | The highest available offset          |
+| An integer ≥ 0                     | A specific position                    |
+
+Case doesn't matter. Any other value raises an error with a hint.
+
+### Re-reading from the Beginning
 
 ```bash
 php artisan kafka:offset:set products products earliest
 ```
 
-### Go to the last message (skip the backlog)
+### Jumping to the Latest Message (Skipping the Backlog)
 
 ```bash
 php artisan kafka:offset:set products products latest
 ```
 
-### Set a specific offset
+### Setting a Specific Offset
 
 ```bash
 php artisan kafka:offset:set products products 150
 ```
 
-### Set an offset for a specific partition
+### Setting an Offset for a Specific Partition
 
 ```bash
 php artisan kafka:offset:set products products 150 --partition=0
 ```
+
+Without `--partition`, the change applies to every partition of the topic.
 
 The command prints the result:
 
@@ -153,13 +174,20 @@ The command prints the result:
 +-----------+----------------------------+-----------+-----+-----+
 ```
 
+The command exits with code `1` and a clear message if:
+
+- the topic key isn't registered (`TopicCannotResolvedException`);
+- the topic doesn't belong to the worker, or the given partition doesn't exist;
+- the numeric offset is outside `[Min, Max]`;
+- the worker isn't registered (`ListenerException`).
+
 ::: danger Important
-The worker must be **stopped** while resetting offsets. If the consumer process is running, it will overwrite the new position on the next commit.
+The worker must be **stopped** while resetting the offset. If the consumer process is still running, it will overwrite the new position on its next commit.
 :::
 
 ## kafka:commit
 
-Manually creates a commit record in the database for the given key. Useful when a message needs to be marked as processed without going through the normal consumer pipeline.
+Manually creates a commit record in the idempotency store for a given key. Useful when a message needs to be marked as processed without going through the standard consumer pipeline.
 
 ```bash
 php artisan kafka:commit {key}
@@ -171,56 +199,52 @@ php artisan kafka:commit {key}
 php artisan kafka:commit order-12345
 ```
 
-If the key has already been committed, the command outputs a warning and exits with a non-zero code:
+If a commit already exists for that key, the command prints a warning and exits with code `1`:
 
 ```
  WARN  Commit for key [order-12345] already exists.
 ```
 
-Otherwise, the commit is saved and the command reports success:
+Otherwise, the commit is saved:
 
 ```
  INFO  Commit for key [order-12345] has been saved.
 ```
 
+::: warning The key must match what the consumer computes
+The command works with a raw key. With `IdempotencyMessageRepository` active, the real key looks like `"{x-idempotency-key}-{full topic name}"`, e.g. `order-12345-production.fact.orders.1`; without the header, it looks like `"{partition}-{offset}-{topic name}"`.
+
+You can find the exact key in `ConsumerCommiterMiddleware`'s logs — it's written to the `msg_id` field.
+:::
+
 ::: tip
-This command is intended for recovery scenarios — for example, when a message was processed outside the consumer or needs to be skipped permanently.
+This command is meant for recovery scenarios — for example, when a message was processed outside the consumer, or needs to be permanently skipped.
 :::
 
 ## kafka:commit:purge
 
-Deletes committed records from the database that are older than the configured retention period. Useful for keeping the `kafka_bus_commits` table from growing indefinitely in long-running applications.
+Deletes commit records older than a given age — otherwise the table grows forever.
 
 ```bash
 php artisan kafka:commit:purge
-```
-
-By default the retention period comes from `kafka-bus-commiter.purge.days` (default: `14`). Override it per-run with `--days`:
-
-```bash
-# Delete records older than 30 days
 php artisan kafka:commit:purge --days=30
 ```
 
-The command prints how many records were removed:
+Without `--days`, the value comes from `kafka-bus-commiter.purge.days` (defaults to `14`).
 
 ```
- INFO  Purged 42 commit(s) older than 14 day(s).
+ INFO  Purged 1523 commit(s) older than 14 day(s).
 ```
 
-::: info Redis source
-The Redis repository source does not support this command — it manages retention automatically via key TTL set at write time. Running `kafka:commit:purge` against a Redis source exits with an error:
+Only records with a non-null `commited_at` are removed — incomplete attempts are kept.
 
-```
-The active repository source does not support purging.
-```
+::: warning Database driver only
+The command requires the active source to implement `PurgeInterface`. For the `redis` source it exits with code `1` and the message `The active repository source does not support purging` — cleanup there happens via key TTL instead.
 :::
 
-::: tip Scheduling
-Register the command in your scheduler so old records are cleaned up automatically:
+It's convenient to schedule this command:
 
 ```php
-// routes/console.php  (Laravel 11+)
+// routes/console.php
 Schedule::command('kafka:commit:purge')->daily();
 ```
-:::

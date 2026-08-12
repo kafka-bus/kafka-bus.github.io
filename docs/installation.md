@@ -2,12 +2,16 @@
 
 ## Requirements
 
-| Dependency           | Version          | Required      |
-|----------------------|------------------|---------------|
-| PHP                  | `^8.2`           | ✅             |
-| `ext-rdkafka`        | any current      | ✅             |
-| Apache Kafka cluster | `2.x+`           | ✅             |
-| `ext-pcntl`          | any              | Recommended   |
+| Dependency            | Version           | Required      |
+|------------------------|--------------------|----------------|
+| PHP                    | `^8.2`             | ✅             |
+| `ext-rdkafka`          | any current        | ✅             |
+| Apache Kafka cluster   | `2.x+`             | ✅             |
+| `ext-pcntl`            | any                | Recommended    |
+
+`ext-rdkafka` is a hard requirement of `kafka-bus/core`: all low-level I/O goes through `RdKafka\Producer` and `RdKafka\KafkaConsumer`.
+
+`ext-pcntl` isn't strictly required, but without it you can't cleanly stop a long-running consumer process on `SIGTERM`/`SIGINT` — see [Graceful Shutdown](/docs/consumer/consuming#graceful-shutdown-via-signals).
 
 ::: details How to install ext-rdkafka
 ```bash
@@ -27,13 +31,13 @@ RUN apt-get install -y librdkafka-dev \
 ```
 :::
 
-## Package Installation
+## Installing the Package
 
 ```bash
 composer require kafka-bus/core
 ```
 
-## Verification
+## Verify
 
 ```bash
 php -m | grep rdkafka
@@ -43,9 +47,18 @@ php -r "echo \RdKafka\Conf::class;"
 # RdKafka\Conf
 ```
 
-## Additional Packages
+## Ecosystem Overview
 
-Depending on your stack, you can install integration packages:
+| Package                     | Namespace           | Purpose                                                            |
+|------------------------------|----------------------|----------------------------------------------------------------------|
+| `kafka-bus/core`             | `KafkaBus\Core`     | Bus, connections, routing, producer and consumer pipeline           |
+| `kafka-bus/messages`         | `KafkaBus\Messages` | Typed `Payload`, casters, `DomainMessage`, test factories           |
+| `kafka-bus/commiter`         | `KafkaBus\Commiter` | Idempotent processing: consumer and producer middleware              |
+| `kafka-bus/laravel-bridge`   | `KafkaBus\Laravel`  | Laravel integration: config, facade, Artisan commands, `FakeBus`    |
+
+## Optional Packages
+
+Install the integration package that matches your stack:
 
 ::: code-group
 
@@ -80,5 +93,5 @@ composer require kafka-bus/outbox
 ## What's Next
 
 - [Connection Configuration](/docs/configuration)
-- [Topic Registration](/docs/topics)
+- [Registering Topics](/docs/topics)
 - [Usage Examples](https://github.com/kafka-bus/kafka-bus/tree/1.x/examples)

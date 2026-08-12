@@ -1,4 +1,4 @@
-﻿# Consumer
+# Получение сообщений
 
 ## Создание обработчика
 
@@ -27,6 +27,20 @@ class ProductsConsumer
 }
 ```
 
+Обработчик резолвится через контейнер Laravel, поэтому зависимости можно внедрять через конструктор:
+
+```php
+class ProductsConsumer
+{
+    public function __construct(
+        private readonly ProductRepository $products,
+        private readonly LoggerInterface $logger,
+    ) {}
+
+    public function __invoke(ConsumerMessageInterface $message): void { /* ... */ }
+}
+```
+
 ### Другие варианты типов аргументов
 
 ```php
@@ -40,7 +54,9 @@ public function __invoke(array $data): void { ... }
 public function __invoke(\RdKafka\Message $message): void { ... }
 ```
 
-## Регистрация в конфиге
+Подробнее о механизме автоопределения — в разделе [Получение сообщений](/ru/docs/consumer/consuming#порядок-разрешения-фабрики).
+
+## Регистрация в конфигурации
 
 ```php
 // config/kafka-bus.php
@@ -51,24 +67,27 @@ public function __invoke(\RdKafka\Message $message): void { ... }
 ],
 ```
 
-## Обработчик с DomainMessage
+Имя воркера здесь совпадает с ключом топика. Другие форматы — в разделе [Конфигурация](/ru/docs/laravel/configuration#консьюмеры).
 
-При использовании пакета `kafka-bus/messages` добавьте атрибут `#[MessageFactory]`:
+## Типизированный обработчик
+
+При использовании `kafka-bus/messages` добавьте атрибут `#[MessageFactory]`:
 
 ```php
-use KafkaBus\Core\Consumers\Attributes\MessageFactory;
-use KafkaBus\Messages\Factories\DomainMessageFactory;
 use App\Kafka\Messages\ProductMessage;
+use KafkaBus\Core\Consumers\Attributes\MessageFactory;
+use KafkaBus\Messages\DomainEventEnum;
+use KafkaBus\Messages\Factories\DomainMessageFactory;
 
 class ProductsConsumer
 {
     #[MessageFactory(new DomainMessageFactory(ProductMessage::class))]
     public function __invoke(ProductMessage $message): void
     {
-        match ($message->event->value) {
-            'create' => $this->onCreate($message),
-            'update' => $this->onUpdate($message),
-            'delete' => $this->onDelete($message),
+        match ($message->getEvent()) {
+            DomainEventEnum::Create => $this->onCreate($message),
+            DomainEventEnum::Update => $this->onUpdate($message),
+            DomainEventEnum::Delete => $this->onDelete($message),
         };
     }
 
@@ -80,7 +99,9 @@ class ProductsConsumer
     private function onUpdate(ProductMessage $message): void
     {
         Product::find($message->id)?->update(
-            collect($message->dirty)->mapWithKeys(fn($k) => [$k => $message->$k])->all()
+            collect($message->getDirty())
+                ->mapWithKeys(fn (string $field) => [$field => $message->$field])
+                ->all()
         );
     }
 
@@ -91,15 +112,36 @@ class ProductsConsumer
 }
 ```
 
+::: warning
+Событие и список изменённых полей доступны через методы `getEvent()` и `getDirty()`, а не как свойства. `$message->event` вернёт `null`, потому что пойдёт в магический геттер `Payload`.
+:::
+
 ## Запуск воркера
 
 ```bash
 php artisan kafka:consume products
 ```
 
-Команда запускает блокирующий цикл чтения. В продакшне используйте Supervisor или аналог.
+Команда запускает блокирующий цикл чтения и корректно обрабатывает `SIGTERM`, `SIGINT` и `SIGQUIT`: текущее сообщение дообрабатывается и коммитится, после чего процесс завершается.
 
-### Конфиг Supervisor
+### Несколько воркеров в одном процессе
+
+Команда принимает список имён:
+
+```bash
+php artisan kafka:consume products orders
+```
+
+Воркеры объединяются, но настройки подключения (`group.id`, `auto_commit`, `consumer_timeout`) берутся у **первого** воркера в списке. Объединяйте только воркеров с совместимыми настройками — подробнее в разделе [Архитектура](/ru/docs/architecture#несколько-воркеров-в-одном-процессе).
+
+### Все воркеры сразу
+
+```bash
+php artisan kafka:consume:all
+php artisan kafka:consume:all --expect=products-analytics
+```
+
+### Конфигурация Supervisor
 
 ```ini
 [program:kafka-products]
@@ -108,10 +150,24 @@ directory=/var/www
 autostart=true
 autorestart=true
 stopwaitsecs=60
+stopsignal=TERM
 user=www-data
+numprocs=1
 stdout_logfile=/var/www/storage/logs/kafka-products.log
 stderr_logfile=/var/www/storage/logs/kafka-products-err.log
 ```
+
+::: tip
+`stopwaitsecs` должен превышать `consumer_timeout`, иначе Supervisor убьёт процесс до того, как тот завершит текущую итерацию.
+
+Увеличивать `numprocs` имеет смысл только до количества партиций топика: лишние процессы в той же группе останутся без назначенных партиций.
+:::
+
+::: warning Обработчик падает — процесс тоже
+Необработанное исключение из обработчика останавливает воркер, и Supervisor перезапускает его. Без защиты «ядовитое» сообщение зациклит перезапуски.
+
+Добавьте middleware с `try/catch` ([пример](/ru/docs/consumer/pipeline#middleware-с-обработкои-ошибок)) или `ConsumerCommiterMiddleware` с ограничением `maxAttempt`.
+:::
 
 ## Воркер с несколькими топиками
 
@@ -132,6 +188,8 @@ stderr_logfile=/var/www/storage/logs/kafka-products-err.log
 php artisan kafka:consume default
 ```
 
+Все топики читаются одним консьюмером в одной группе — сообщения обрабатываются последовательно, порядок между топиками не гарантирован.
+
 ## Middleware на уровне воркера
 
 ```php
@@ -145,6 +203,8 @@ php artisan kafka:consume default
     ],
 ],
 ```
+
+Middleware указываются классами и резолвятся через контейнер, поэтому в них можно внедрять зависимости. К этому списку добавляются глобальные из `consumers.middleware` — они выполняются первыми.
 
 ## Middleware на уровне топика
 
@@ -160,6 +220,8 @@ php artisan kafka:consume default
     ],
 ],
 ```
+
+Middleware топика реализует `MessagePipelineMiddleware` и видит уже десериализованный объект, а middleware воркера — `ConsumerPipelineMiddleware` и видит сырое сообщение. См. [Pipeline](/ru/docs/consumer/pipeline).
 
 ## Несколько воркеров для одного топика
 
@@ -179,12 +241,27 @@ php artisan kafka:consume default
 ```
 
 ::: warning
-Каждый воркер должен использовать **отдельный** `group.id`, иначе они будут конкурировать за одни и те же партиции.
+Каждый такой воркер должен использовать **отдельный** `group.id`, иначе они будут конкурировать за одни и те же партиции и каждое сообщение достанется только одному из них.
 :::
 
-```dotenv
-# Для основного воркера
-KAFKA_CONSUMER_GROUP_ID=my-service
+Задать отдельную группу можно прямо в конфигурации воркера:
 
-# Для аналитического воркера — задаётся в коде или отдельном .env
+```php
+'products-analytics' => [
+    'topic_key' => 'products',
+    'handler'   => App\Kafka\Consumers\ProductsAnalyticsConsumer::class,
+    'additional_options' => [
+        'group.id' => env('APP_NAME').'-analytics',
+    ],
+],
 ```
+
+`additional_options` воркера объединяются с глобальными по ключам, поэтому переопределяется только `group.id`.
+
+## Проверка конфигурации
+
+```bash
+php artisan kafka:worker:list
+```
+
+Команда выводит воркеры, их топики, обработчики и обе цепочки middleware — удобный способ убедиться, что конфиг собрался как задумано.
