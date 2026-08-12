@@ -2,7 +2,7 @@
 
 The Laravel bridge includes automatic support for [Laravel Octane](https://laravel.com/docs/octane). No additional configuration is required.
 
-## How it works
+## How It Works
 
 When `laravel/octane` is installed, the service provider automatically registers a listener for the `WorkerStarting` event. The listener resolves `BusInterface` from the container at worker boot time, establishing the Kafka connection before the first request is handled.
 

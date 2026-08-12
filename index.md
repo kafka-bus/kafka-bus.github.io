@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Kafka Bus
   text: PHP client for Apache Kafka
-  tagline: Typed messages, middleware pipeline, and convenient testing without boilerplate
+  tagline: Typed messages, a middleware pipeline, and convenient testing without the boilerplate
   actions:
     - theme: brand
       text: Quick Start
@@ -16,13 +16,13 @@ hero:
 features:
   - icon: 🚌
     title: kafka-bus/core
-    details: The ecosystem core. A Bus facade with multi-connection support, topic routing, a middleware pipeline, and built-in fakes for testing.
+    details: The core of the ecosystem. A Bus facade with support for multiple connections, topic routing, a middleware pipeline, and built-in fakes for testing.
     link: /docs/installation
     linkText: Core Documentation
 
   - icon: 🟥
     title: kafka-bus/laravel-bridge
-    details: Laravel integration with auto-discovery, out-of-the-box config, Artisan commands for managing workers, and KafkaBus::fake() for tests.
+    details: Laravel integration — package auto-discovery, ready-made config, Artisan commands for managing workers, and KafkaBus::fake() for tests.
     link: /docs/laravel/installation
     linkText: Laravel Documentation
 
@@ -40,10 +40,10 @@ features:
 ---
 
 <div class="home-features-section">
-<h2 class="home-features-title">Key Features</h2>
-<p class="home-features-subtitle">Everything you need for reliable Kafka messaging in PHP</p>
+<h2 class="home-features-title">Features</h2>
+<p class="home-features-subtitle">Everything you need for reliable Kafka integration in PHP</p>
 
-<FeatureCard icon="🗂️" title="Topic Registry & Routing" details="Map short logical keys to full physical Kafka topic names — a single source of truth for the whole application. ConsumerRoutesBuilder routes incoming messages to handlers by key; PublisherRoutesBuilder resolves the target topic from the message class automatically." link="/docs/topics">
+<FeatureCard icon="🗂️" title="Topic Registry and Routing" details="Maps short logical keys to physical topic names — a single source of truth for the whole application. ConsumerRoutesBuilder routes incoming messages to handlers by key; PublisherRoutesBuilder automatically resolves the target topic from the message class." link="/docs/topics">
 
 ::: code-group
 
@@ -55,24 +55,24 @@ $topicRegistry = (new TopicRegistry())
 ```
 
 ```php [Consumer]
-// Map logical key → handler
+// Logical key → handler mapping
 $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->add(new RouteInfo('products', new ProductHandler()))
     ->add(new RouteInfo('orders',   new OrderHandler()))
     ->build();
 
-// Start listening — topic names resolved from registry
+// Start listening — topic names are resolved from the registry
 $bus->listener('default')->listen();
 ```
 
 ```php [Producer]
-// Map message class → logical key
+// Message class → logical key mapping
 $publisherRoutes = PublisherRoutesBuilder::make($topicRegistry)
     ->add(ProductCreatedMessage::class, 'products')
     ->add(OrderCreatedMessage::class,   'orders')
     ->build();
 
-// Publish — topic resolved automatically by message class
+// Publishing — the topic is resolved automatically from the class
 $bus->publish(new ProductCreatedMessage($product));
 $bus->publish(new OrderCreatedMessage($order));
 ```
@@ -142,16 +142,9 @@ final readonly class ProducerIdempotencyMiddleware implements ProducerPipelineMi
 
 </FeatureCard>
 
-<FeatureCard icon="📝" title="Typed Messages" details="Declare typed Payload classes with automatic field casting — int, float, datetime, nested Payload objects, and collections. DomainMessage adds create/update/delete event type and a list of changed fields (dirty) on top." link="/docs/components/messages">
+<FeatureCard icon="📝" title="Typed Messages" details="Declare typed Payload classes with automatic field casting — int, float, datetime, nested objects, and collections. DomainMessage adds a create/update/delete event type and a list of changed (dirty) fields." link="/docs/components/messages">
 
 ```php
-/**
- * @property int $id
- * @property float $price
- * @property DateTime $published
- * @property CategoryPayload $category
- * @property AttributePayload[] $attributes
- */
 class ProductPayload extends Payload
 {
     protected function definitionCasters(): array
@@ -178,7 +171,7 @@ echo $product->category->name; // "Electronics"
 
 </FeatureCard>
 
-<FeatureCard icon="🔑" title="Message Delivery Contracts" details="Implement HasKey, HasHeaders, or HasPartition on any message class to control exactly how it is delivered. All three interfaces are independent and can be freely combined." link="/docs/producer/producing">
+<FeatureCard icon="🔑" title="Message Delivery Contracts" details="Implement HasKey, HasHeaders, or HasPartition on any message class to control its delivery. All three interfaces are independent and can be freely combined." link="/docs/producer/producing">
 
 ::: code-group
 
@@ -189,7 +182,7 @@ final readonly class OrderCreatedMessage implements ProducerMessageInterface, Ha
 {
     public function getKey(): ?string
     {
-        return (string) $this->orderId; // all events for the same order go to the same partition
+        return (string) $this->orderId; // all events for one order go to the same partition
     }
 }
 ```
@@ -226,7 +219,7 @@ final readonly class OrderCreatedMessage implements ProducerMessageInterface, Ha
 
 </FeatureCard>
 
-<FeatureCard icon="🎯" title="Smart Handler Resolution" details="Declare the type you need — the bus delivers it. Handlers receive ConsumerMessageInterface for full message access, string for raw payload, array for decoded JSON, or RdKafka\Message for low-level metadata. Add #[MessageFactory] to auto-hydrate typed domain objects." link="/docs/consumer/consuming">
+<FeatureCard icon="🎯" title="Flexible Handler Typing" details="Declare the type you need — the bus delivers it. Handlers can receive ConsumerMessageInterface for full access, string for the raw payload, array for decoded JSON, or RdKafka\Message for metadata. The #[MessageFactory] attribute hydrates typed objects automatically." link="/docs/consumer/consuming">
 
 ::: code-group
 
@@ -264,18 +257,18 @@ class AuditHandler
 
 </FeatureCard>
 
-<FeatureCard icon="🛡️" title="Idempotent Processing" details="ConsumerCommiterMiddleware deduplicates messages by their Kafka msgId or a stable x-idempotency-key header. Configurable retry limit. Any storage backend — implement RepositorySourceInterface for a database, Redis, or anything else." link="/docs/components/commiter">
+<FeatureCard icon="🛡️" title="Idempotent Processing" details="ConsumerCommiterMiddleware deduplicates messages by Kafka msgId or a stable x-idempotency-key header. Configurable attempt limit. Any storage — implement RepositorySourceInterface for a database, Redis, or anything else." link="/docs/components/commiter">
 
 ::: code-group
 
 ```php [Consumer]
-// Attach to the worker pipeline
+// Attach to the worker's pipeline
 new ConsumerCommiterMiddleware(
     repository: new IdempotencyMessageRepository(
         new DatabaseRepositorySource()
     ),
     logger:     $logger, // PSR-3
-    maxAttempt: 3,       // -1 for unlimited
+    maxAttempt: 3,       // -1 for unlimited attempts
 )
 ```
 
@@ -289,7 +282,7 @@ final readonly class ProductCreatedMessage implements HasIdempotency
     }
 }
 
-// Middleware automatically adds x-idempotency-key header
+// The middleware automatically adds the x-idempotency-key header
 new ProducerIdempotencyMiddleware()
 ```
 
@@ -297,7 +290,7 @@ new ProducerIdempotencyMiddleware()
 
 </FeatureCard>
 
-<FeatureCard icon="🔀" title="Multiple Connections" details="Register any number of named connections to different Kafka clusters. The Bus uses a default connection for all calls; switch to another connection per call with onConnection(). Useful for separating core and analytics traffic across clusters." link="/docs/configuration">
+<FeatureCard icon="🔀" title="Multiple Connections" details="Register any number of named connections to different Kafka clusters. The bus uses the default connection; switch to another one via onConnection() for a specific call." link="/docs/configuration">
 
 ```php
 $connectionRegistry = new ConnectionRegistry(
@@ -321,13 +314,12 @@ $bus->onConnection('analytics')->publish(new PageViewEvent()); // analytics
 
 </FeatureCard>
 
-
-<FeatureCard icon="🟥" title="Laravel Integration" details="Install kafka-bus/laravel-bridge for auto-discovery, a publishable config file, and Artisan commands. KafkaBus::fake() intercepts all bus calls — no real broker needed. Assert published messages, feed the fake consumer, and assert commits." link="/docs/laravel/installation">
+<FeatureCard icon="🟥" title="Laravel Integration" details="Install kafka-bus/laravel-bridge for package auto-discovery, ready-made config, and Artisan commands. KafkaBus::fake() intercepts all bus calls — no real broker needed. Assert published messages, feed the fake consumer, and check commits." link="/docs/laravel/installation">
 
 ::: code-group
 
 ```php [Setup]
-// config/kafka-bus.php — ready to use after publish
+// config/kafka-bus.php — ready to use after publishing
 'connections' => [
     'kafka' => [
         'driver'  => 'kafka',
@@ -335,19 +327,20 @@ $bus->onConnection('analytics')->publish(new PageViewEvent()); // analytics
     ],
 ],
 
-// Artisan worker management
-// php artisan kafka-bus:consume products
+// Manage workers via Artisan
+// php artisan kafka:consume products
+// php artisan kafka:consume products orders
 
-// Production
+// In production
 KafkaBus::publish(new ProductCreatedMessage($product));
 KafkaBus::onConnection('analytics')->publish(new PageViewEvent());
 
-// Tests
+// In tests
 KafkaBus::fake();
 KafkaBus::assertPublished(ProductCreatedMessage::class);
 ```
 
-```php [Producer Test]
+```php [Producer Tests]
 it('publishes a message when a product is created', function () {
     KafkaBus::fake();
 
@@ -363,8 +356,8 @@ it('publishes a message when a product is created', function () {
 });
 ```
 
-```php [Consumer Test]
-it('saves a product when a message arrives', function () {
+```php [Consumer Tests]
+it('stores a product when the message is received', function () {
     KafkaBus::fake();
 
     KafkaBus::addMessage(
@@ -383,7 +376,7 @@ it('saves a product when a message arrives', function () {
 
 </FeatureCard>
 
-<FeatureCard icon="📤" title="Batch Publishing" details="Publish multiple messages in a single Bus call using MessageBatch. All messages in the batch are sent through the full producer pipeline — middleware, routing, and serialization — without a manual loop." link="/docs/producer/producing">
+<FeatureCard icon="📤" title="Batch Publishing" details="Publish multiple messages in a single bus call via MessageBatch. Every message in the batch goes through the full pipeline — middleware, routing, and serialization — with no manual loop." link="/docs/producer/producing">
 
 ```php
 $messages = array_map(
@@ -397,7 +390,7 @@ $messages = array_map(
 
 $bus->publishBatch(MessageBatch::fromArray($messages));
 
-// Batch on a specific connection
+// Batch to a specific connection
 $bus->onConnection('analytics')
     ->publishBatch(MessageBatch::fromArray($events));
 ```

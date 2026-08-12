@@ -45,7 +45,7 @@ export default defineConfig({
             {
               text: 'Producer',
               items: [
-                { text: 'Producing messages', link: '/docs/producer/producing' },
+                { text: 'Producing', link: '/docs/producer/producing' },
                 { text: 'Configure', link: '/docs/producer/configure' },
                 { text: 'Pipeline', link: '/docs/producer/pipeline' },
                 { text: 'Testing', link: '/docs/producer/testing' },
@@ -54,7 +54,7 @@ export default defineConfig({
             {
               text: 'Consumer',
               items: [
-                { text: 'Consuming messages', link: '/docs/consumer/consuming' },
+                { text: 'Consuming', link: '/docs/consumer/consuming' },
                 { text: 'Configure', link: '/docs/consumer/configure' },
                 { text: 'Pipeline', link: '/docs/consumer/pipeline' },
                 { text: 'Testing', link: '/docs/consumer/testing' },
