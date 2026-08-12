@@ -2,6 +2,10 @@
 
 `kafka-bus/core` предоставляет fake-заглушки, позволяющие проверять поведение продюсера без реального брокера Kafka.
 
+::: tip Laravel
+В Laravel-приложении ничего собирать вручную не нужно — используйте `KafkaBus::fake()` и готовые ассерты `assertPublished()` / `assertPublishedTimes()`. См. [Тестирование в Laravel](/ru/docs/laravel/testing).
+:::
+
 ## ProducerMessageFaker
 
 `ProducerMessageFaker` — лёгкая реализация `ProducerMessageInterface` для тестов. Реализует `HasHeaders` и `HasPartition`, поэтому можно управлять всеми параметрами исходящего сообщения.
@@ -22,9 +26,11 @@ $message = new ProducerMessageFaker(
 | `$headers`   | `array`  | `[]`         | Заголовки, возвращаемые `getHeaders()`              |
 | `$partition` | `int`    | `-1`         | Номер партиции; `-1` — Kafka выбирает автоматически |
 
+`ProducerMessageFaker` не реализует `HasKey`, поэтому ключ опубликованного сообщения всегда `null`. Если нужно проверить логику ключа партиционирования, используйте собственный класс сообщения.
+
 ## Полный тест продюсера
 
-`ConnectionFaker` записывает каждое опубликованное сообщение в память. `ConnectionRegistryFaker` подключает его к `Bus` вместо реального соединения.
+`ConnectionFaker` записывает каждое опубликованное сообщение в память. `ConnectionRegistryFaker` подключает его к `Bus` вместо реального соединения — причём возвращает одно и то же подключение для любого имени, так что `onConnection()` в тестах тоже работает.
 
 ```php
 use KafkaBus\Core\Bus;
@@ -73,6 +79,10 @@ $bus = new Bus(
 $bus->publish(new ProducerMessageFaker('test-message', ['foo' => 'bar'], 5));
 ```
 
+::: tip
+Маршруты здесь собираются напрямую через `new Route(...)`, минуя `PublisherRoutesBuilder`. Это удобно в тестах: не нужно, чтобы ключ топика был зарегистрирован в реестре — достаточно готового объекта `Topic`.
+:::
+
 ### Проверка опубликованных сообщений
 
 После `publish()` все отправленные сообщения доступны в `$connectionFaker->publishedMessages` с ключом — полным именем топика:
@@ -82,11 +92,60 @@ $published = $connectionFaker->publishedMessages['production.fact.products.1'];
 
 assert(count($published) === 1);
 
-$message = $published[0]; // объект, совместимый с RdKafka
+$message = $published[0]; // KafkaBus\Core\Producers\Messages\ProducerMessage
 
 assert($message->payload   === 'test-message');
 assert($message->partition === 5);
 assert($message->headers   === ['foo' => 'bar']);
+assert($message->key       === null);
+assert($message->topic->key === 'products');
 ```
 
-В реальном тесте вместо `ProducerMessageFaker` можно использовать собственную реализацию `ProducerMessageInterface` и проверять маршрутизацию, сериализацию payload и формирование заголовков.
+::: warning
+В `publishedMessages` попадают объекты `ProducerMessage` — результат работы **всего** pipeline, а не исходные сообщения приложения. Это удобно: в тесте видно ровно то, что ушло бы в брокер, включая заголовки, добавленные middleware. Но это не `RdKafka\Message` — у него нет `offset`, `err` и прочих полей брокера.
+:::
+
+Доступные свойства `ProducerMessage` (все `readonly`):
+
+| Свойство    | Тип                    | Описание                              |
+|-------------|------------------------|---------------------------------------|
+| `topic`     | `Topic`                | Целевой топик                         |
+| `payload`   | `string`               | Результат `toPayload()`               |
+| `headers`   | `array<string, mixed>` | Итоговые заголовки                    |
+| `partition` | `int`                  | `-1`, если партиция не задана явно    |
+| `key`       | `?string`              | Ключ партиционирования                |
+
+## Проверка middleware
+
+Поскольку в `publishedMessages` лежит результат всего pipeline, middleware проверяются без отдельной обвязки — достаточно добавить их в `Options` маршрута:
+
+```php
+use KafkaBus\Core\Bus\Publishers\Router\Options;
+use KafkaBus\Commiter\Middleware\ProducerIdempotencyMiddleware;
+
+$routes = (new PublisherRoutes())
+    ->add(new Route(
+        OrderMessage::class,
+        $topicRegistry->get('orders'),
+        new Options(middleware: [new ProducerIdempotencyMiddleware()])
+    ));
+
+$bus->publish(new OrderMessage(orderId: 42));
+
+$published = $connectionFaker->publishedMessages['production.fact.orders.1'];
+
+assert($published[0]->headers['x-idempotency-key'] === 'order-42');
+```
+
+Аналогично проверяется и отмена публикации: если middleware не вызвал `continue()`, массив `publishedMessages` для этого топика останется пустым.
+
+## Проверка отсутствия публикации
+
+`ConnectionFaker::$publishedMessages` — обычный публичный массив, поэтому отрицательные проверки пишутся напрямую:
+
+```php
+assert($connectionFaker->publishedMessages === []);                  // ничего не публиковалось
+assert(! isset($connectionFaker->publishedMessages['other.topic'])); // в этот топик не писали
+```
+
+В реальном тесте вместо `ProducerMessageFaker` используйте собственную реализацию `ProducerMessageInterface` и проверяйте маршрутизацию, сериализацию payload и формирование заголовков.

@@ -4,10 +4,14 @@
 
 | Зависимость          | Версия           | Обязательно   |
 |----------------------|------------------|---------------|
-| PHP                  | `^8.2`           | ✅             |
-| `ext-rdkafka`        | любая актуальная | ✅             |
-| Apache Kafka cluster | `2.x+`           | ✅             |
+| PHP                  | `^8.2`           | ✅            |
+| `ext-rdkafka`        | любая актуальная | ✅            |
+| Apache Kafka cluster | `2.x+`           | ✅            |
 | `ext-pcntl`          | любая            | Рекомендуется |
+
+`ext-rdkafka` — обязательное требование `kafka-bus/core`: весь низкоуровневый ввод-вывод идёт через `RdKafka\Producer` и `RdKafka\KafkaConsumer`.
+
+`ext-pcntl` формально не требуется, но без него нельзя корректно остановить долгоживущий процесс консьюмера по `SIGTERM`/`SIGINT` — см. [Graceful shutdown](/ru/docs/consumer/consuming#graceful-shutdown-через-сигналы).
 
 ::: details Как установить ext-rdkafka
 ```bash
@@ -42,6 +46,15 @@ php -m | grep rdkafka
 php -r "echo \RdKafka\Conf::class;"
 # RdKafka\Conf
 ```
+
+## Состав экосистемы
+
+| Пакет                      | Namespace           | Назначение                                                         |
+|----------------------------|---------------------|--------------------------------------------------------------------|
+| `kafka-bus/core`           | `KafkaBus\Core`     | Bus, подключения, маршрутизация, pipeline продьюсера и консьюмера  |
+| `kafka-bus/messages`       | `KafkaBus\Messages` | Типизированный `Payload`, кастеры, `DomainMessage`, фабрики тестов |
+| `kafka-bus/commiter`       | `KafkaBus\Commiter` | Идемпотентная обработка: middleware консьюмера и продьюсера        |
+| `kafka-bus/laravel-bridge` | `KafkaBus\Laravel`  | Интеграция с Laravel: конфиг, фасад, Artisan-команды, `FakeBus`    |
 
 ## Дополнительные пакеты
 

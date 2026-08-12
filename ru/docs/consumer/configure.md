@@ -6,31 +6,37 @@
 Приложение
     │
     ▼ listener(workerName)
-  Bus → Thread → ListenerFactory
+  Bus → Thread → ListenerFactory → WorkerRegistry
     │
     ▼ listen()
-  Listener
+  Listener → ConsumerStream (блокирующий цикл)
     │
+    ▼ getMessage()
+  Consumer → Kafka Broker
+    │ ← ConsumerMessage
     ▼
-  ConsumerStream → Kafka Broker
-    │ ← message
+  MessageHandler
+    │ → Consumer Pipeline (middleware воркера)
     ▼
-  Consumer Pipeline
+  ConsumerRouter → RouteExecutor
+    │ → MessageFactory (десериализация)
+    │ → Route Pipeline (middleware маршрута)
+    ▼
+  Обработчик (бизнес-логика)
     │
-    ▼
-  ConsumerRouter → Route Pipeline → MessageHandler (бизнес-логика)
+    ▼ commit()
 ```
 
 Подробнее:
 
 1. Приложение запрашивает listener: `Bus::listener('worker-name')`.
-2. `Bus` делегирует в `Thread`, который создаёт `Listener` через `ListenerFactory`.
-3. `Listener` запускает `ConsumerStream` — блокирующий цикл чтения.
-4. Каждое сообщение проходит через Consumer Pipeline.
-5. `ConsumerRouter` находит нужный `MessageHandler` по имени топика.
-6. Сообщение конвертируется через `MessageFactory`.
-7. Сообщение передаётся в Route Pipeline.
-8. Обработчик выполняет бизнес-логику.
+2. `ListenerFactory` достаёт `Worker` из `WorkerRegistryInterface` и собирает `ConsumerStream`.
+3. `ConsumerStream` запускает блокирующий цикл чтения.
+4. Каждое сообщение проходит через Consumer Pipeline воркера.
+5. `ConsumerRouter` находит маршрут по **физическому имени топика**.
+6. `MessageFactory` конвертирует сообщение в тип, ожидаемый обработчиком.
+7. Сообщение проходит Route Pipeline и попадает в обработчик.
+8. При успехе выполняется `commit()`.
 
 ## Маршруты
 
@@ -46,19 +52,47 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->build();
 ```
 
+### Параметры RouteInfo
+
+```php
+new RouteInfo(
+    topicKey:   'orders',            // логический ключ топика
+    handler:    new OrderHandler(),  // любой callable
+    middleware: [],                  // list<MessagePipelineMiddleware>
+);
+```
+
+| Параметр     | Тип                               | По умолчанию | Описание                       |
+|--------------|-----------------------------------|--------------|--------------------------------|
+| `topicKey`   | `string`                          | —            | Ключ топика из `TopicRegistry` |
+| `handler`    | `callable`                        | —            | Обработчик сообщения           |
+| `middleware` | `list<MessagePipelineMiddleware>` | `[]`         | Middleware уровня маршрута     |
+
 ### Маршрут с middleware
 
 ```php
-use KafkaBus\Core\Consumers\Router\RouteOptions;
-
 $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
     ->add(new RouteInfo(
-        topicKey: 'orders',
-        handler:  new OrderHandler(),
-        options:  new RouteOptions(middleware: [new TenantMiddleware()])
+        topicKey:   'orders',
+        handler:    new OrderHandler(),
+        middleware: [new TenantMiddleware()],
     ))
     ->build();
 ```
+
+### Фабрика сообщений по умолчанию
+
+Вторым аргументом `ConsumerRoutesBuilder::make()` можно задать фабрику, которая применится ко всем маршрутам, где тип аргумента обработчика распознать не удалось:
+
+```php
+use KafkaBus\Core\Consumers\Messages\StringMessageFactory;
+
+$consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry, new StringMessageFactory())
+    ->add(new RouteInfo('products', $legacyHandler))
+    ->build();
+```
+
+Без второго аргумента используется `NativeMessageFactory`. Приоритет разрешения описан в разделе [Получение сообщений](/ru/docs/consumer/consuming#порядок-разрешения-фабрики).
 
 ## Воркеры
 
@@ -66,15 +100,14 @@ $consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
 
 ```php
 use KafkaBus\Core\Bus\Listeners\Workers\MemoryWorkerRegistry;
-use KafkaBus\Core\Bus\Listeners\Workers\Worker;
 use KafkaBus\Core\Bus\Listeners\Workers\Options;
+use KafkaBus\Core\Bus\Listeners\Workers\Worker;
 
 $workerRegistry = MemoryWorkerRegistry::make()
     ->add(new Worker(
         name:    'default',
         routes:  $consumerRoutes,
         options: new Options(
-            middleware:        [],
             additionalOptions: [
                 'group.id'              => 'my-service',
                 'auto.offset.reset'     => 'earliest',
@@ -82,11 +115,76 @@ $workerRegistry = MemoryWorkerRegistry::make()
                 'session.timeout.ms'    => 45_000,
                 'heartbeat.interval.ms' => 3_000,
             ],
-            autoCommit:       false,
-            consumeTimeout:   5_000,
+            middleware:      [],
+            autoCommit:      false,
+            consumerTimeout: 5_000,
         )
     ));
 ```
+
+Реестр передаётся в `ListenerFactory`:
+
+```php
+use KafkaBus\Core\Bus\Listeners\ListenerFactory;
+use KafkaBus\Core\Consumers\ConsumerStreamFactory;
+
+$listenerFactory = new ListenerFactory(
+    new ConsumerStreamFactory(),
+    $workerRegistry,
+);
+```
+
+Обращение к незарегистрированному имени воркера бросает `ListenerException`.
+
+### Параметры Options
+
+| Параметр            | Тип                                | По умолчанию | Описание                                          |
+|---------------------|------------------------------------|--------------|---------------------------------------------------|
+| `additionalOptions` | `array<string, scalar\|null>`      | `[]`         | Параметры librdkafka для консьюмера               |
+| `middleware`        | `list<ConsumerPipelineMiddleware>` | `[]`         | Middleware уровня воркера (все топики)            |
+| `autoCommit`        | `bool`                             | `true`       | Выбор реализации коммита offset                   |
+| `consumerTimeout`   | `int`                              | `2000`       | Таймаут ожидания сообщения в `consume()`, мс      |
+
+::: warning Фильтрация additionalOptions
+Ключи фильтруются по белому списку `Options::CONSUMER_OPTIONS` — параметры продьюсера (например, `compression.codec`) молча отбрасываются. Полный список — в разделе [Конфигурация](/ru/docs/configuration#фильтрация-параметров-producer-vs-consumer).
+:::
+
+## Коммит offset
+
+Флаг `autoCommit` выбирает реализацию `CommiterInterface`, которую использует `Consumer::commit()`:
+
+| `autoCommit` | Класс             | Поведение                                                       |
+|--------------|-------------------|-----------------------------------------------------------------|
+| `true`       | `DefaultCommiter` | Вызывает `KafkaConsumer::commitAsync()` после каждого сообщения |
+| `false`      | `VoidCommiter`    | Ничего не делает — коммит остаётся на стороне librdkafka        |
+
+::: tip Как это соотносится с `enable.auto.commit`
+Это два независимых механизма. `autoCommit` управляет явным коммитом из кода kafka-bus, а `enable.auto.commit` — периодическим фоновым коммитом внутри librdkafka.
+
+Типичные комбинации:
+
+- **`autoCommit: true` + `enable.auto.commit: 'false'`** — коммит строго после успешной обработки каждого сообщения. Предсказуемо, at-least-once, рекомендуется по умолчанию.
+- **`autoCommit: false` + `enable.auto.commit: 'true'`** — offset двигается по таймеру независимо от результата обработки. Быстрее, но при падении процесса часть сообщений будет потеряна.
+:::
+
+Коммит выполняется через `RetryRepeater`: до 10 попыток с паузой 1000 мкс.
+
+## Устойчивость цикла
+
+`ConsumerStream` игнорирует штатные «пустые» ответы брокера и продолжает работу:
+
+| Код ошибки                            | Причина                            |
+|---------------------------------------|------------------------------------|
+| `RD_KAFKA_RESP_ERR__PARTITION_EOF`    | Достигнут конец партиции           |
+| `RD_KAFKA_RESP_ERR__TRANSPORT`        | Временная сетевая ошибка           |
+| `RD_KAFKA_RESP_ERR_REQUEST_TIMED_OUT` | Брокер не ответил вовремя          |
+| `RD_KAFKA_RESP_ERR__TIMED_OUT`        | Истёк `consumerTimeout`            |
+
+Остальные коды пробрасываются как `MessageConsumerException` и останавливают воркер.
+
+::: tip
+`RD_KAFKA_RESP_ERR__TIMED_OUT` возникает штатно каждые `consumerTimeout` мс, когда в топике нет новых сообщений. Это не ошибка — просто цикл делает следующую итерацию.
+:::
 
 ## Параметры Consumer
 
@@ -97,4 +195,41 @@ $workerRegistry = MemoryWorkerRegistry::make()
 | `max.poll.interval.ms`  | Макс. время между опросами       | `300000`                |
 | `session.timeout.ms`    | Таймаут сессии                   | `45000`                 |
 | `heartbeat.interval.ms` | Интервал heartbeat               | `3000`                  |
-| `enable.auto.commit`    | Автокоммит offset                | `false` (рекомендуется) |
+| `enable.auto.commit`    | Фоновый автокоммит offset        | `'false'` (строкой)     |
+
+::: warning
+Передавайте `enable.auto.commit` строкой `'false'`, а не `false`. Булево значение корректно преобразуется в `'false'`, но числовой `0` и `null` были бы отброшены фильтрацией — подробнее в разделе [Нормализация значений](/ru/docs/configuration#нормализация-значении).
+:::
+
+## Просмотр и сброс offset
+
+`Listener::partitions()` даёт доступ к текущим offset воркера и позволяет их переустановить:
+
+```php
+use KafkaBus\Core\Bus\Listeners\Partitions\CommitOffset;
+use KafkaBus\Core\Bus\Listeners\Partitions\Offset;
+
+$partitions = $bus->listener('products')->partitions();
+
+foreach ($partitions->list() as $partition) {
+    echo "{$partition->topic->key} #{$partition->id}: "
+       . "{$partition->currentOffset} / [{$partition->minOffset}, {$partition->maxOffset}]\n";
+}
+
+// Перечитать топик с начала во всех партициях
+$partitions->setOffset(new CommitOffset(
+    topic:     $topicRegistry->get('products'),
+    partition: RD_KAFKA_PARTITION_UA, // все партиции
+    offset:    Offset::Early,         // либо Offset::Latest, либо конкретное число
+));
+```
+
+`setOffset()` бросает `CannotCommitOffsetException`, если топик не принадлежит воркеру, партиция не найдена или offset выходит за границы `[minOffset, maxOffset]`.
+
+::: warning
+Метод `partitions()` доступен только для подключений, реализующих `ConnectionHasTopicsInterface` (то есть `KafkaConnection`). Для `NullConnection` он бросит `LogicException`.
+
+Воркер должен быть остановлен: запущенный процесс перезапишет позицию при следующем коммите.
+:::
+
+В Laravel эти операции доступны как команды `kafka:offset:show` и `kafka:offset:set` — см. [Команды](/ru/docs/laravel/commands).
