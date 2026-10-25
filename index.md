@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Quick Start
-      link: /docs/installation
+      link: /docs/2.x/installation
     - theme: alt
       text: GitHub
       link: https://github.com/kafka-bus/kafka-bus
@@ -16,34 +16,46 @@ hero:
 features:
   - icon: 🚌
     title: kafka-bus/core
-    details: The core of the ecosystem. A Bus facade with support for multiple connections, topic routing, a middleware pipeline, and built-in fakes for testing.
-    link: /docs/installation
+    details: The core of the ecosystem. A single Bus for publishing and receiving, topic routing in both directions, a middleware pipeline, and BusFaker with ready-made assertions for tests.
+    link: /docs/2.x/installation
     linkText: Core Documentation
 
   - icon: 🟥
     title: kafka-bus/laravel-bridge
-    details: Laravel integration — package auto-discovery, ready-made config, Artisan commands for managing workers, and KafkaBus::fake() for tests.
-    link: /docs/laravel/installation
+    details: Laravel integration — package auto-discovery, ready-made config with consumer routes and workers, Artisan commands for running workers and managing offsets, and KafkaBus::fake() for tests.
+    link: /docs/2.x/laravel/installation
     linkText: Laravel Documentation
 
   - icon: 📨
     title: kafka-bus/messages
     details: Typed Payload, JsonMessage, and DomainMessage with automatic field casting, create/update/delete event support, and test factories.
-    link: /docs/components/messages
+    link: /docs/2.x/components/messages
     linkText: Messages Documentation
 
   - icon: ✅
     title: kafka-bus/commiter
     details: Idempotent message processing via middleware. Tracks processed messages, skips duplicates, and limits the number of retry attempts.
-    link: /docs/components/commiter
+    link: /docs/2.x/components/commiter
     linkText: Commiter Documentation
+
+  - icon: ⚙️
+    title: kafka-bus/worker
+    details: The polling loop that reads Kafka and hands every message to the bus. Workers only list topics and consumer options; several workers can share one process.
+    link: /docs/2.x/consumer/workers
+    linkText: Worker Documentation
+
+  - icon: 📊
+    title: kafka-bus/metadata
+    details: Cluster topics and partitions, consumer group offsets and lag, and safe offset resets — independent of any worker.
+    link: /docs/2.x/components/metadata
+    linkText: Metadata Documentation
 ---
 
 <div class="home-features-section">
 <h2 class="home-features-title">Features</h2>
 <p class="home-features-subtitle">Everything you need for reliable Kafka integration in PHP</p>
 
-<FeatureCard icon="🗂️" title="Topic Registry and Routing" details="Maps short logical keys to physical topic names — a single source of truth for the whole application. ConsumerRoutesBuilder routes incoming messages to handlers by key; PublisherRoutesBuilder automatically resolves the target topic from the message class." link="/docs/topics">
+<FeatureCard icon="🗂️" title="Topic Registry and Routing" details="Maps short logical keys to physical topic names — a single source of truth for the whole application. ReceiverBuilder routes incoming messages to handlers by key; PublisherRoutesBuilder automatically resolves the target topic from the message class." link="/docs/2.x/topics">
 
 ::: code-group
 
@@ -56,13 +68,15 @@ $topicRegistry = (new TopicRegistry())
 
 ```php [Consumer]
 // Logical key → handler mapping
-$consumerRoutes = ConsumerRoutesBuilder::make($topicRegistry)
+$receiver = ReceiverBuilder::make($topicRegistry)
     ->add(new RouteInfo('products', new ProductHandler()))
     ->add(new RouteInfo('orders',   new OrderHandler()))
     ->build();
 
-// Start listening — topic names are resolved from the registry
-$bus->listener('default')->listen();
+// A worker polls topics and dispatches every message to the bus
+(new WorkerRunnerFactory($workerRegistry))
+    ->create($bus, 'default')
+    ->run();
 ```
 
 ```php [Producer]
@@ -81,30 +95,25 @@ $bus->publish(new OrderCreatedMessage($order));
 
 </FeatureCard>
 
-<FeatureCard icon="⛓️" title="Middleware Pipeline" details="Attach middleware globally for a worker — every message on every topic passes through the chain. Each middleware receives the pipeline and decides whether to pass control to the next link." link="/docs/consumer/pipeline">
+<FeatureCard icon="⛓️" title="Middleware Pipeline" details="Attach middleware to producer and consumer routes. A consumer middleware sees both the raw Kafka message and the deserialized object; each middleware decides whether to pass control to the next link." link="/docs/2.x/consumer/pipeline">
 
 ::: code-group
 
 ```php [Consumer]
-use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineHandler;
-use KafkaBus\Core\Consumers\Pipelines\ConsumerPipelineMiddleware;
-use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
+use KafkaBus\Core\Pipelines\PipelineInterface;
+use KafkaBus\Core\Receivers\Pipelines\ReceiverPipelineMiddleware;
 
-class LoggingMiddleware implements ConsumerPipelineMiddleware
+class LoggingMiddleware implements ReceiverPipelineMiddleware
 {
-    /**
-     * @param PipelineInterface<ConsumerPipelineHandler> $pipeline
-     * @return PipelineInterface<ConsumerPipelineHandler>
-     */
     public function handle(PipelineInterface $pipeline): PipelineInterface
     {
         $start = hrtime(true);
-        
+
         $pipeline->continue();
-        
+
         $elapsed = (hrtime(true) - $start) / 1e6;
         echo "Processed in {$elapsed}ms: " . $pipeline->handler()->target()->topicName();
-        
+
         return $pipeline;
     }
 }
@@ -113,16 +122,11 @@ class LoggingMiddleware implements ConsumerPipelineMiddleware
 ```php [Producer]
 use KafkaBus\Commiter\Interfaces\HasIdempotency;
 use KafkaBus\Commiter\Repositories\IdempotencyMessageRepository;
-use KafkaBus\Core\Interfaces\Pipelines\PipelineInterface;
-use KafkaBus\Core\Producers\Pipelines\ProducerPipelineHandler;
-use KafkaBus\Core\Producers\Pipelines\ProducerPipelineMiddleware;
+use KafkaBus\Core\Pipelines\PipelineInterface;
+use KafkaBus\Core\Publishers\Pipelines\PublisherPipelineMiddleware;
 
-final readonly class ProducerIdempotencyMiddleware implements ProducerPipelineMiddleware
+final readonly class PublisherIdempotencyMiddleware implements PublisherPipelineMiddleware
 {
-    /**
-     * @param PipelineInterface<ProducerPipelineHandler> $pipeline
-     * @return PipelineInterface<ProducerPipelineHandler>
-     */
     public function handle(PipelineInterface $pipeline): PipelineInterface
     {
         $message = $pipeline->handler()
@@ -142,7 +146,7 @@ final readonly class ProducerIdempotencyMiddleware implements ProducerPipelineMi
 
 </FeatureCard>
 
-<FeatureCard icon="📝" title="Typed Messages" details="Declare typed Payload classes with automatic field casting — int, float, datetime, nested objects, and collections. DomainMessage adds a create/update/delete event type and a list of changed (dirty) fields." link="/docs/components/messages">
+<FeatureCard icon="📝" title="Typed Messages" details="Declare typed Payload classes with automatic field casting — int, float, datetime, nested objects, and collections. DomainMessage adds a create/update/delete event type and a list of changed (dirty) fields." link="/docs/2.x/components/messages">
 
 ```php
 class ProductPayload extends Payload
@@ -171,12 +175,12 @@ echo $product->category->name; // "Electronics"
 
 </FeatureCard>
 
-<FeatureCard icon="🔑" title="Message Delivery Contracts" details="Implement HasKey, HasHeaders, or HasPartition on any message class to control its delivery. All three interfaces are independent and can be freely combined." link="/docs/producer/producing">
+<FeatureCard icon="🔑" title="Message Delivery Contracts" details="Implement HasKey, HasHeaders, or HasPartition on any message class to control its delivery. All three interfaces are independent and can be freely combined." link="/docs/2.x/producer/producing">
 
 ::: code-group
 
 ```php [HasKey]
-use KafkaBus\Core\Interfaces\Producers\Messages\HasKey;
+use KafkaBus\Core\Producers\Messages\HasKey;
 
 final readonly class OrderCreatedMessage implements ProducerMessageInterface, HasKey
 {
@@ -188,7 +192,7 @@ final readonly class OrderCreatedMessage implements ProducerMessageInterface, Ha
 ```
 
 ```php [HasHeaders]
-use KafkaBus\Core\Interfaces\Producers\Messages\HasHeaders;
+use KafkaBus\Core\Producers\Messages\HasHeaders;
 
 final readonly class OrderCreatedMessage implements ProducerMessageInterface, HasHeaders
 {
@@ -204,7 +208,7 @@ final readonly class OrderCreatedMessage implements ProducerMessageInterface, Ha
 ```
 
 ```php [HasPartition]
-use KafkaBus\Core\Interfaces\Producers\Messages\HasPartition;
+use KafkaBus\Core\Producers\Messages\HasPartition;
 
 final readonly class OrderCreatedMessage implements ProducerMessageInterface, HasPartition
 {
@@ -219,7 +223,7 @@ final readonly class OrderCreatedMessage implements ProducerMessageInterface, Ha
 
 </FeatureCard>
 
-<FeatureCard icon="🎯" title="Flexible Handler Typing" details="Declare the type you need — the bus delivers it. Handlers can receive ConsumerMessageInterface for full access, string for the raw payload, array for decoded JSON, or RdKafka\Message for metadata. The #[MessageFactory] attribute hydrates typed objects automatically." link="/docs/consumer/consuming">
+<FeatureCard icon="🎯" title="Flexible Handler Typing" details="Declare the type you need — the bus delivers it. Handlers can receive ConsumerMessageInterface for full access, string for the raw payload, array for decoded JSON, or RdKafka\Message for metadata. The #[MessageFactory] attribute hydrates typed objects automatically." link="/docs/2.x/consumer/consuming">
 
 ::: code-group
 
@@ -257,12 +261,12 @@ class AuditHandler
 
 </FeatureCard>
 
-<FeatureCard icon="🛡️" title="Idempotent Processing" details="ConsumerCommiterMiddleware deduplicates messages by Kafka msgId or a stable x-idempotency-key header. Configurable attempt limit. Any storage — implement RepositorySourceInterface for a database, Redis, or anything else." link="/docs/components/commiter">
+<FeatureCard icon="🛡️" title="Idempotent Processing" details="ConsumerCommiterMiddleware deduplicates messages by Kafka msgId or a stable x-idempotency-key header. Configurable attempt limit. Any storage — implement RepositorySourceInterface for a database, Redis, or anything else." link="/docs/2.x/components/commiter">
 
 ::: code-group
 
 ```php [Consumer]
-// Attach to the worker's pipeline
+// Attach to a consumer route
 new ConsumerCommiterMiddleware(
     repository: new IdempotencyMessageRepository(
         new DatabaseRepositorySource()
@@ -283,38 +287,52 @@ final readonly class ProductCreatedMessage implements HasIdempotency
 }
 
 // The middleware automatically adds the x-idempotency-key header
-new ProducerIdempotencyMiddleware()
+new PublisherIdempotencyMiddleware()
 ```
 
 :::
 
 </FeatureCard>
 
-<FeatureCard icon="🔀" title="Multiple Connections" details="Register any number of named connections to different Kafka clusters. The bus uses the default connection; switch to another one via onConnection() for a specific call." link="/docs/configuration">
+<FeatureCard icon="⚙️" title="Workers Separate from Handlers" details="A worker only knows which topics to poll; it hands raw messages to Bus::dispatch(), where routing, middleware, and handlers live. Merge several workers into one process, stop them gracefully on a signal." link="/docs/2.x/consumer/workers">
 
 ```php
-$connectionRegistry = new ConnectionRegistry(
-    driverRegistry: $driverRegistry,
-    connections: [
-        'main' => new KafkaConnectionConfig([
-            'metadata.broker.list' => 'kafka-main:9092',
-        ]),
-        'analytics' => new KafkaConnectionConfig([
-            'metadata.broker.list' => 'kafka-analytics:9092',
-            'security.protocol'    => 'SASL_SSL',
-        ]),
-    ],
-    defaultConnectionName: 'main',
-);
+$workerRegistry = MemoryWorkerRegistry::make()
+    ->add(new Worker('products', [$topicRegistry->get('products')], new Options(
+        additionalOptions: ['group.id' => 'products-service'],
+    )))
+    ->add(new Worker('orders', [$topicRegistry->get('orders')]));
 
-// Publish to a specific cluster
-$bus->publish(new ProductCreatedMessage($product));           // main
-$bus->onConnection('analytics')->publish(new PageViewEvent()); // analytics
+$runner = (new WorkerRunnerFactory($workerRegistry))
+    ->create($bus, ['products', 'orders']); // one consumer for both
+
+pcntl_async_signals(true);
+pcntl_signal(SIGTERM, fn () => $runner->forceStop());
+
+$runner->run();
 ```
 
 </FeatureCard>
 
-<FeatureCard icon="🟥" title="Laravel Integration" details="Install kafka-bus/laravel-bridge for package auto-discovery, ready-made config, and Artisan commands. KafkaBus::fake() intercepts all bus calls — no real broker needed. Assert published messages, feed the fake consumer, and check commits." link="/docs/laravel/installation">
+<FeatureCard icon="📊" title="Offsets and Lag" details="kafka-bus/metadata lists partitions with the committed offset and watermarks of a consumer group, and moves offsets with bounds validation — to re-read a topic or skip a backlog." link="/docs/2.x/components/metadata">
+
+```php
+$partitions = Metadata::fromConnection($bus->connection())
+    ->partitions([$topicRegistry->get('products')], new ConsumerConfig(
+        additionalOptions: ['group.id' => 'products-service'],
+    ));
+
+foreach ($partitions->list() as $partition) {
+    echo "#{$partition->id} lag: " . ($partition->maxOffset - $partition->currentOffset) . "\n";
+}
+
+// Re-read the topic from the beginning
+$partitions->setOffset(new CommitOffset($topic, RD_KAFKA_PARTITION_UA, Offset::Early));
+```
+
+</FeatureCard>
+
+<FeatureCard icon="🟥" title="Laravel Integration" details="Install kafka-bus/laravel-bridge for package auto-discovery, ready-made config, and Artisan commands. KafkaBus::fake() intercepts all bus calls — no real broker needed. Assert published messages, feed the fake consumer, and check commits." link="/docs/2.x/laravel/installation">
 
 ::: code-group
 
@@ -327,13 +345,18 @@ $bus->onConnection('analytics')->publish(new PageViewEvent()); // analytics
     ],
 ],
 
-// Manage workers via Artisan
+'consumers' => [
+    'routes' => [
+        'products' => App\Kafka\Consumers\ProductsConsumer::class,
+    ],
+],
+
+// Run workers via Artisan
 // php artisan kafka:consume products
-// php artisan kafka:consume products orders
+// php artisan kafka:consume:routes
 
 // In production
 KafkaBus::publish(new ProductCreatedMessage($product));
-KafkaBus::onConnection('analytics')->publish(new PageViewEvent());
 
 // In tests
 KafkaBus::fake();
@@ -376,7 +399,7 @@ it('stores a product when the message is received', function () {
 
 </FeatureCard>
 
-<FeatureCard icon="📤" title="Batch Publishing" details="Publish multiple messages in a single bus call via MessageBatch. Every message in the batch goes through the full pipeline — middleware, routing, and serialization — with no manual loop." link="/docs/producer/producing">
+<FeatureCard icon="📤" title="Batch Publishing" details="Publish multiple messages in a single bus call via MessageBatch. Every message in the batch goes through the full pipeline — middleware, routing, and serialization — with no manual loop." link="/docs/2.x/producer/producing">
 
 ```php
 $messages = array_map(
@@ -389,10 +412,6 @@ $messages = array_map(
 );
 
 $bus->publishBatch(MessageBatch::fromArray($messages));
-
-// Batch to a specific connection
-$bus->onConnection('analytics')
-    ->publishBatch(MessageBatch::fromArray($events));
 ```
 
 </FeatureCard>

@@ -1,4 +1,130 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, type DefaultTheme } from 'vitepress'
+
+const LATEST = '2.x'
+
+type Version = '1.x' | '2.x'
+
+const enSidebar = (version: Version): DefaultTheme.SidebarItem[] => {
+  const base = `/docs/${version}`
+
+  const consumer: DefaultTheme.SidebarItem[] = version === '1.x'
+    ? [
+        { text: 'Consuming', link: `${base}/consumer/consuming` },
+        { text: 'Configure', link: `${base}/consumer/configure` },
+        { text: 'Pipeline', link: `${base}/consumer/pipeline` },
+        { text: 'Testing', link: `${base}/consumer/testing` },
+      ]
+    : [
+        { text: 'Consuming', link: `${base}/consumer/consuming` },
+        { text: 'Routes', link: `${base}/consumer/configure` },
+        { text: 'Workers', link: `${base}/consumer/workers` },
+        { text: 'Pipeline', link: `${base}/consumer/pipeline` },
+        { text: 'Testing', link: `${base}/consumer/testing` },
+      ]
+
+  const components: DefaultTheme.SidebarItem[] = [
+    { text: 'Messages', link: `${base}/components/messages` },
+    { text: 'Commiter', link: `${base}/components/commiter` },
+    ...(version === '2.x' ? [{ text: 'Metadata', link: `${base}/components/metadata` }] : []),
+  ]
+
+  return [
+    {
+      text: `Kafka Bus ${version}`,
+      items: [
+        { text: 'Installation', link: `${base}/installation` },
+        ...(version === '2.x' ? [{ text: 'Upgrading from 1.x', link: `${base}/upgrade` }] : []),
+        { text: 'Configuration', link: `${base}/configuration` },
+        { text: 'Architecture', link: `${base}/architecture` },
+        { text: 'Topics', link: `${base}/topics` },
+      ],
+    },
+    {
+      text: 'Producer',
+      items: [
+        { text: 'Producing', link: `${base}/producer/producing` },
+        { text: 'Configure', link: `${base}/producer/configure` },
+        { text: 'Pipeline', link: `${base}/producer/pipeline` },
+        { text: 'Testing', link: `${base}/producer/testing` },
+      ],
+    },
+    { text: 'Consumer', items: consumer },
+    { text: 'Components', items: components },
+    {
+      text: 'Laravel',
+      items: [
+        { text: 'Installation', link: `${base}/laravel/installation` },
+        { text: 'Configuration', link: `${base}/laravel/configuration` },
+        { text: 'Producing', link: `${base}/laravel/producers` },
+        { text: 'Consuming', link: `${base}/laravel/consumers` },
+        { text: 'Commands', link: `${base}/laravel/commands` },
+        { text: 'Octane', link: `${base}/laravel/octane` },
+        { text: 'Testing', link: `${base}/laravel/testing` },
+      ],
+    },
+  ]
+}
+
+const ruSidebar = (version: Version): DefaultTheme.SidebarItem[] => {
+  const base = `/ru/docs/${version}`
+
+  const consumer: DefaultTheme.SidebarItem[] = version === '1.x'
+    ? [
+        { text: 'Получение', link: `${base}/consumer/consuming` },
+        { text: 'Настройка', link: `${base}/consumer/configure` },
+        { text: 'Pipeline', link: `${base}/consumer/pipeline` },
+        { text: 'Тестирование', link: `${base}/consumer/testing` },
+      ]
+    : [
+        { text: 'Получение', link: `${base}/consumer/consuming` },
+        { text: 'Маршруты', link: `${base}/consumer/configure` },
+        { text: 'Воркеры', link: `${base}/consumer/workers` },
+        { text: 'Pipeline', link: `${base}/consumer/pipeline` },
+        { text: 'Тестирование', link: `${base}/consumer/testing` },
+      ]
+
+  const components: DefaultTheme.SidebarItem[] = [
+    { text: 'Messages', link: `${base}/components/messages` },
+    { text: 'Commiter', link: `${base}/components/commiter` },
+    ...(version === '2.x' ? [{ text: 'Metadata', link: `${base}/components/metadata` }] : []),
+  ]
+
+  return [
+    {
+      text: `Kafka Bus ${version}`,
+      items: [
+        { text: 'Установка', link: `${base}/installation` },
+        ...(version === '2.x' ? [{ text: 'Переход с 1.x', link: `${base}/upgrade` }] : []),
+        { text: 'Конфигурация', link: `${base}/configuration` },
+        { text: 'Архитектура', link: `${base}/architecture` },
+        { text: 'Топики', link: `${base}/topics` },
+      ],
+    },
+    {
+      text: 'Продюсер',
+      items: [
+        { text: 'Отправка', link: `${base}/producer/producing` },
+        { text: 'Настройка', link: `${base}/producer/configure` },
+        { text: 'Pipeline', link: `${base}/producer/pipeline` },
+        { text: 'Тестирование', link: `${base}/producer/testing` },
+      ],
+    },
+    { text: 'Консьюмер', items: consumer },
+    { text: 'Компоненты', items: components },
+    {
+      text: 'Laravel',
+      items: [
+        { text: 'Установка', link: `${base}/laravel/installation` },
+        { text: 'Конфигурация', link: `${base}/laravel/configuration` },
+        { text: 'Отправка', link: `${base}/laravel/producers` },
+        { text: 'Получение', link: `${base}/laravel/consumers` },
+        { text: 'Команды', link: `${base}/laravel/commands` },
+        { text: 'Octane', link: `${base}/laravel/octane` },
+        { text: 'Тестирование', link: `${base}/laravel/testing` },
+      ],
+    },
+  ]
+}
 
 export default defineConfig({
   title: 'Kafka Bus',
@@ -14,72 +140,35 @@ export default defineConfig({
       description: 'PHP client for Apache Kafka',
       themeConfig: {
         nav: [
-          { text: 'Docs', link: '/docs/installation' },
+          { text: 'Docs', link: `/docs/${LATEST}/installation`, activeMatch: '^/docs/' },
           {
             text: 'Components',
             items: [
-              { text: 'Messages', link: '/docs/components/messages' },
-              { text: 'Commiter', link: '/docs/components/commiter' },
+              { text: 'Messages', link: `/docs/${LATEST}/components/messages` },
+              { text: 'Commiter', link: `/docs/${LATEST}/components/commiter` },
+              { text: 'Metadata', link: `/docs/${LATEST}/components/metadata` },
             ],
           },
           {
             text: 'Integrations',
             items: [
-              { text: 'Laravel', link: '/docs/laravel/installation' },
+              { text: 'Laravel', link: `/docs/${LATEST}/laravel/installation` },
             ],
           },
           {
-            text: 'v1.x',
+            text: 'Versions',
             items: [
-              { text: 'Changelog', link: 'https://github.com/kafka-bus/kafka-bus/blob/1.x/CHANGELOG.md' },
+              { text: '2.x (latest)', link: '/docs/2.x/installation', activeMatch: '^/docs/2\\.x/' },
+              { text: '1.x', link: '/docs/1.x/installation', activeMatch: '^/docs/1\\.x/' },
+              { text: 'Upgrading from 1.x', link: '/docs/2.x/upgrade' },
+              { text: 'Changelog', link: 'https://github.com/kafka-bus/kafka-bus/blob/2.x/CHANGELOG.md' },
             ],
           },
         ],
 
         sidebar: {
-          '/docs/': [
-            { text: 'Installation', link: '/docs/installation' },
-            { text: 'Configuration', link: '/docs/configuration' },
-            { text: 'Architecture', link: '/docs/architecture' },
-            { text: 'Topics', link: '/docs/topics' },
-            {
-              text: 'Producer',
-              items: [
-                { text: 'Producing', link: '/docs/producer/producing' },
-                { text: 'Configure', link: '/docs/producer/configure' },
-                { text: 'Pipeline', link: '/docs/producer/pipeline' },
-                { text: 'Testing', link: '/docs/producer/testing' },
-              ],
-            },
-            {
-              text: 'Consumer',
-              items: [
-                { text: 'Consuming', link: '/docs/consumer/consuming' },
-                { text: 'Configure', link: '/docs/consumer/configure' },
-                { text: 'Pipeline', link: '/docs/consumer/pipeline' },
-                { text: 'Testing', link: '/docs/consumer/testing' },
-              ],
-            },
-            {
-              text: 'Components',
-              items: [
-                { text: 'Messages', link: '/docs/components/messages' },
-                { text: 'Commiter', link: '/docs/components/commiter' },
-              ],
-            },
-            {
-              text: 'Laravel',
-              items: [
-                { text: 'Installation', link: '/docs/laravel/installation' },
-                { text: 'Configuration', link: '/docs/laravel/configuration' },
-                { text: 'Producing', link: '/docs/laravel/producers' },
-                { text: 'Consuming', link: '/docs/laravel/consumers' },
-                { text: 'Commands', link: '/docs/laravel/commands' },
-                { text: 'Octane', link: '/docs/laravel/octane' },
-                { text: 'Testing', link: '/docs/laravel/testing' },
-              ],
-            },
-          ],
+          '/docs/2.x/': enSidebar('2.x'),
+          '/docs/1.x/': enSidebar('1.x'),
         },
 
         editLink: {
@@ -100,72 +189,35 @@ export default defineConfig({
       description: 'PHP клиент для Apache Kafka',
       themeConfig: {
         nav: [
-          { text: 'Документация', link: '/ru/docs/installation' },
+          { text: 'Документация', link: `/ru/docs/${LATEST}/installation`, activeMatch: '^/ru/docs/' },
           {
             text: 'Компоненты',
             items: [
-              { text: 'Messages', link: '/ru/docs/components/messages' },
-              { text: 'Commiter', link: '/ru/docs/components/commiter' },
+              { text: 'Messages', link: `/ru/docs/${LATEST}/components/messages` },
+              { text: 'Commiter', link: `/ru/docs/${LATEST}/components/commiter` },
+              { text: 'Metadata', link: `/ru/docs/${LATEST}/components/metadata` },
             ],
           },
           {
             text: 'Интеграции',
             items: [
-              { text: 'Laravel', link: '/ru/docs/laravel/installation' },
+              { text: 'Laravel', link: `/ru/docs/${LATEST}/laravel/installation` },
             ],
           },
           {
-            text: 'v1.x',
+            text: 'Версии',
             items: [
-              { text: 'Changelog', link: 'https://github.com/kafka-bus/kafka-bus/blob/1.x/CHANGELOG.md' },
+              { text: '2.x (актуальная)', link: '/ru/docs/2.x/installation', activeMatch: '^/ru/docs/2\\.x/' },
+              { text: '1.x', link: '/ru/docs/1.x/installation', activeMatch: '^/ru/docs/1\\.x/' },
+              { text: 'Переход с 1.x', link: '/ru/docs/2.x/upgrade' },
+              { text: 'Changelog', link: 'https://github.com/kafka-bus/kafka-bus/blob/2.x/CHANGELOG.md' },
             ],
           },
         ],
 
         sidebar: {
-          '/ru/docs/': [
-            { text: 'Установка', link: '/ru/docs/installation' },
-            { text: 'Конфигурация', link: '/ru/docs/configuration' },
-            { text: 'Архитектура', link: '/ru/docs/architecture' },
-            { text: 'Топики', link: '/ru/docs/topics' },
-            {
-              text: 'Продюсер',
-              items: [
-                { text: 'Отправка', link: '/ru/docs/producer/producing' },
-                { text: 'Настройка', link: '/ru/docs/producer/configure' },
-                { text: 'Pipeline', link: '/ru/docs/producer/pipeline' },
-                { text: 'Тестирование', link: '/ru/docs/producer/testing' },
-              ],
-            },
-            {
-              text: 'Консьюмер',
-              items: [
-                { text: 'Получение', link: '/ru/docs/consumer/consuming' },
-                { text: 'Настройка', link: '/ru/docs/consumer/configure' },
-                { text: 'Pipeline', link: '/ru/docs/consumer/pipeline' },
-                { text: 'Тестирование', link: '/ru/docs/consumer/testing' },
-              ],
-            },
-            {
-              text: 'Компоненты',
-              items: [
-                { text: 'Messages', link: '/ru/docs/components/messages' },
-                { text: 'Commiter', link: '/ru/docs/components/commiter' },
-              ],
-            },
-            {
-              text: 'Laravel',
-              items: [
-                { text: 'Установка', link: '/ru/docs/laravel/installation' },
-                { text: 'Конфигурация', link: '/ru/docs/laravel/configuration' },
-                { text: 'Отправка', link: '/ru/docs/laravel/producers' },
-                { text: 'Получение', link: '/ru/docs/laravel/consumers' },
-                { text: 'Команды', link: '/ru/docs/laravel/commands' },
-                { text: 'Octane', link: '/ru/docs/laravel/octane' },
-                { text: 'Тестирование', link: '/ru/docs/laravel/testing' },
-              ],
-            },
-          ],
+          '/ru/docs/2.x/': ruSidebar('2.x'),
+          '/ru/docs/1.x/': ruSidebar('1.x'),
         },
 
         editLink: {
