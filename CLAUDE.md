@@ -36,7 +36,7 @@ Nav and sidebars live in `.vitepress/config.ts`. Sidebars are generated per vers
 ### Content sections (2.x)
 
 - **`docs/2.x/`** — core (`kafka-bus/core`): installation, upgrade, configuration, architecture, topics, `producer/`, `consumer/` (handlers, routes, workers from `kafka-bus/worker`, pipeline, testing)
-- **`docs/2.x/components/`** — `messages` (`kafka-bus/messages`), `commiter` (`kafka-bus/commiter`), `metadata` (`kafka-bus/metadata`)
+- **`docs/2.x/components/`** — `messages` (`kafka-bus/messages`), `commiter` (`kafka-bus/commiter`), `metadata` (`kafka-bus/metadata`), `typed-topics` (`kafka-bus/typed-topics`)
 - **`docs/2.x/laravel/`** — Laravel bridge (`kafka-bus/laravel-bridge`): config, Artisan commands, facade, testing
 
 ### Source of truth for package content
@@ -50,6 +50,7 @@ This repo contains no PHP code — never invent or guess API details, method sig
 | `kafka-bus/metadata`       | `.packages/kafka-bus/packages/metadata` |
 | `kafka-bus/messages`       | `.packages/kafka-bus/packages/messages` |
 | `kafka-bus/commiter`       | `.packages/kafka-bus/packages/commiter` |
+| `kafka-bus/typed-topics`   | `.packages/kafka-bus/packages/typed-topics` |
 | `kafka-bus/laravel-bridge` | `.packages/laravel-bridge`              |
 
 Both submodule repos have `1.x` and `2.x` branches matching the doc versions. Check out the branch that matches the version you're documenting (`git -C .packages/kafka-bus checkout 2.x`); to compare versions, diff the tags (e.g. `git -C .packages/kafka-bus diff v1.3.0 v2.1.0 -- packages`).

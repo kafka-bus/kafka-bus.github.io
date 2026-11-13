@@ -68,7 +68,7 @@ php -r "echo \RdKafka\Conf::class;"
 
 ## Installing individual components
 
-The meta-package `kafka-bus/kafka-bus` replaces five packages. You can install only the ones you need — all of them are released together under the same version tag.
+The meta-package `kafka-bus/kafka-bus` replaces six packages. You can install only the ones you need — all of them are released together under the same version tag.
 
 | Package | Namespace | Purpose | Depends on |
 |---|---|---|---|
@@ -77,6 +77,7 @@ The meta-package `kafka-bus/kafka-bus` replaces five packages. You can install o
 | `kafka-bus/metadata` | `KafkaBus\Metadata` | Topic and partition listing, consumer group offsets | `core` |
 | `kafka-bus/messages` | `KafkaBus\Messages` | Typed `Payload`, casters, `DomainMessage`, test factories | `core` |
 | `kafka-bus/commiter` | `KafkaBus\Commiter` | Idempotent processing middleware | `core`, `psr/log` |
+| `kafka-bus/typed-topics` | `KafkaBus\TypedTopics` | Multiple message types on one topic, routed by header | `core ^2.2`, `psr/log` |
 | `kafka-bus/laravel-bridge` | `KafkaBus\Laravel` | Laravel integration: config, facade, Artisan commands, `FakeBus` | `kafka-bus/kafka-bus` |
 
 Typical sets:
@@ -99,3 +100,5 @@ composer require kafka-bus/core kafka-bus/worker
 - [Architecture](/docs/2.x/architecture)
 - [Registering topics](/docs/2.x/topics)
 - [Usage examples](https://github.com/kafka-bus/kafka-bus/tree/2.x/examples)
+
+For several event types on one topic, see [Typed topics](/docs/2.x/components/typed-topics).

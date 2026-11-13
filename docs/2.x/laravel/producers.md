@@ -258,3 +258,7 @@ php artisan kafka:publisher:route:list
 ```
 
 This command shows every registered message class, its topic, and its middleware.
+
+## Multiple message types on one topic
+
+Use [typed topics](/docs/2.x/components/typed-topics): `HasMessageType` supplies the type header and `TypedTopicHandler` selects a factory and callback. The current Laravel bridge includes `PublisherTypedTopicMiddleware` by default.

@@ -258,3 +258,7 @@ php artisan kafka:publisher:route:list
 ```
 
 Команда покажет все зарегистрированные классы сообщений, их топики и middleware.
+
+## Несколько типов сообщений в одном топике
+
+Используйте [типизированные топики](/ru/docs/2.x/components/typed-topics): `HasMessageType` задаёт заголовок типа, а `TypedTopicHandler` выбирает фабрику и callback. В актуальном Laravel Bridge `PublisherTypedTopicMiddleware` подключён по умолчанию.

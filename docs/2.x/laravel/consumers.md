@@ -286,3 +286,7 @@ php artisan kafka:worker:list
 ```
 
 The first command prints every topic with its handler and the final middleware chain, the second — every worker and its topics. See [Commands](/docs/2.x/laravel/commands).
+
+## Multiple message types on one topic
+
+Use [typed topics](/docs/2.x/components/typed-topics): `HasMessageType` supplies the type header and `TypedTopicHandler` selects a factory and callback. The current Laravel bridge includes `PublisherTypedTopicMiddleware` by default.
