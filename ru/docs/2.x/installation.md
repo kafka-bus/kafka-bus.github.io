@@ -68,7 +68,7 @@ php -r "echo \RdKafka\Conf::class;"
 
 ## Установка отдельных компонентов
 
-Мета-пакет `kafka-bus/kafka-bus` заменяет пять пакетов. Можно поставить только нужные — все они выпускаются вместе под одним тегом версии.
+Мета-пакет `kafka-bus/kafka-bus` заменяет шесть пакетов. Можно поставить только нужные — все они выпускаются вместе под одним тегом версии.
 
 | Пакет | Пространство имён | Назначение | Зависит от |
 |---|---|---|---|
@@ -77,6 +77,7 @@ php -r "echo \RdKafka\Conf::class;"
 | `kafka-bus/metadata` | `KafkaBus\Metadata` | Список топиков и партиций, оффсеты групп консьюмеров | `core` |
 | `kafka-bus/messages` | `KafkaBus\Messages` | Типизированный `Payload`, кастеры, `DomainMessage`, тестовые фабрики | `core` |
 | `kafka-bus/commiter` | `KafkaBus\Commiter` | Middleware идемпотентной обработки | `core`, `psr/log` |
+| `kafka-bus/typed-topics` | `KafkaBus\TypedTopics` | Несколько типов сообщений в одном топике по заголовку | `core ^2.2`, `psr/log` |
 | `kafka-bus/laravel-bridge` | `KafkaBus\Laravel` | Интеграция с Laravel: конфиг, фасад, Artisan-команды, `FakeBus` | `kafka-bus/kafka-bus` |
 
 Типовые наборы:
@@ -99,3 +100,5 @@ composer require kafka-bus/core kafka-bus/worker
 - [Архитектура](/ru/docs/2.x/architecture)
 - [Регистрация топиков](/ru/docs/2.x/topics)
 - [Примеры использования](https://github.com/kafka-bus/kafka-bus/tree/2.x/examples)
+
+Для нескольких типов событий в одном топике см. [Типизированные топики](/ru/docs/2.x/components/typed-topics).

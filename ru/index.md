@@ -32,6 +32,12 @@ features:
     link: /ru/docs/2.x/components/messages
     linkText: Документация Messages
 
+  - icon: 🏷️
+    title: kafka-bus/typed-topics
+    details: Передавайте несколько типов событий через один топик. Заголовок x-message-type определяет фабрику сообщения и обработчик; для старых записей без заголовка можно настроить отдельный маршрут.
+    link: /ru/docs/2.x/components/typed-topics
+    linkText: Документация типизированных топиков
+
   - icon: ✅
     title: kafka-bus/commiter
     details: Идемпотентная обработка сообщений через middleware. Отслеживает обработанные сообщения, пропускает дубликаты и ограничивает число попыток.
@@ -92,6 +98,97 @@ $bus->publish(new OrderCreatedMessage($order));
 ```
 
 :::
+
+</FeatureCard>
+
+<FeatureCard icon="🏷️" title="Типизированные топики" details="Передавайте несколько типов событий через один топик. Заголовок x-message-type определяет фабрику сообщения и обработчик; для старых записей без заголовка можно настроить отдельный маршрут." link="/ru/docs/2.x/components/typed-topics">
+
+::: code-group
+
+```php [Обработчик]
+use App\Kafka\Messages\DeliveryCompleted;
+use App\Kafka\Messages\DeliveryUpdated;
+use KafkaBus\Core\Receivers\Attributes\MessageFactory;
+use KafkaBus\Messages\Factories\JsonMessageFactory;
+use KafkaBus\TypedTopics\MessageRoutes;
+use KafkaBus\TypedTopics\TypedTopicHandler;
+
+final class DeliveryTopicHandler extends TypedTopicHandler
+{
+    protected function routes(MessageRoutes $routes): void
+    {
+        $routes
+            ->on('delivery.updated', $this->onUpdated(...))
+            ->on('delivery.completed', $this->onCompleted(...));
+    }
+
+    #[MessageFactory(new JsonMessageFactory(DeliveryUpdated::class))]
+    private function onUpdated(DeliveryUpdated $message): void
+    {
+        // Примените обновление доставки.
+    }
+
+    #[MessageFactory(new JsonMessageFactory(DeliveryCompleted::class))]
+    private function onCompleted(DeliveryCompleted $message): void
+    {
+        // Обработайте результат доставки.
+    }
+}
+```
+
+```php [DeliveryUpdated]
+namespace App\Kafka\Messages;
+
+use KafkaBus\Core\Producers\Messages\HasKey;
+use KafkaBus\Messages\JsonMessage;
+use KafkaBus\TypedTopics\HasMessageType;
+
+/**
+ * @property int $delivery_id
+ */
+final class DeliveryUpdated extends JsonMessage implements HasMessageType, HasKey
+{
+    public function getMessageType(): string
+    {
+        return 'delivery.updated';
+    }
+
+    public function getKey(): string
+    {
+        return (string) $this->delivery_id;
+    }
+}
+```
+
+```php [DeliveryCompleted]
+namespace App\Kafka\Messages;
+
+use KafkaBus\Core\Producers\Messages\HasKey;
+use KafkaBus\Messages\JsonMessage;
+use KafkaBus\TypedTopics\HasMessageType;
+
+/**
+ * @property int $delivery_id
+ */
+final class DeliveryCompleted extends JsonMessage implements HasMessageType, HasKey
+{
+    public function getMessageType(): string
+    {
+        return 'delivery.completed';
+    }
+
+    public function getKey(): string
+    {
+        return (string) $this->delivery_id;
+    }
+}
+```
+
+:::
+
+Каждый класс сообщения хранится в отдельном файле. Например, `DeliveryUpdated::from(['delivery_id' => 42])` задаёт тип `delivery.updated` и ключ Kafka `42`. Оба типа используют идентификатор доставки как ключ партиционирования.
+
+Сообщения реализуют `HasMessageType`. При отправке `PublisherTypedTopicMiddleware` записывает заголовок типа; в Laravel Bridge он подключён по умолчанию. Консьюмер декодирует запись до запуска middleware и передаёт DTO выбранному обработчику.
 
 </FeatureCard>
 

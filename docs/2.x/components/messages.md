@@ -356,6 +356,18 @@ The package includes base factories for generating realistic test data via [Fake
 
 All factories are immutable: every `with*` call returns a clone.
 
+### Default factory headers
+
+In subclasses of `TestFactory`, including `PayloadTestFactory` and `DomainMessageTestFactory`, define `protected array $headers` to give every record created by `make()` default headers:
+
+```php
+protected array $headers = [
+    'x-message-type' => 'delivery.updated',
+];
+```
+
+`withHeaders()` replaces the entire header map, including defaults; `withHeaders([])` clears them for that cloned instance. See [testing typed topics](/docs/2.x/components/typed-topics#testing) for a typed factory example.
+
 ### DomainMessageTestFactory
 
 ```php

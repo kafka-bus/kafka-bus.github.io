@@ -128,3 +128,7 @@ Practical consequences:
 
 - if a worker polls a topic that has no receiver route, `dispatch()` fails with a `MessageConsumerNotHandledException` wrapping a `RouteConsumerException`;
 - a topic has at most one handler per `Bus`: if two routes point to the same physical topic, only the last one is kept.
+
+## Multiple message types on one topic
+
+Use [typed topics](/docs/2.x/components/typed-topics): `HasMessageType` supplies the type header and `TypedTopicHandler` selects a factory and callback. The current Laravel bridge includes `PublisherTypedTopicMiddleware` by default.

@@ -25,7 +25,10 @@ const enSidebar = (version: Version): DefaultTheme.SidebarItem[] => {
   const components: DefaultTheme.SidebarItem[] = [
     { text: 'Messages', link: `${base}/components/messages` },
     { text: 'Commiter', link: `${base}/components/commiter` },
-    ...(version === '2.x' ? [{ text: 'Metadata', link: `${base}/components/metadata` }] : []),
+    ...(version === '2.x' ? [
+      { text: 'Metadata', link: `${base}/components/metadata` },
+      { text: 'Typed topics', link: `${base}/components/typed-topics` },
+    ] : []),
   ]
 
   return [
@@ -86,7 +89,10 @@ const ruSidebar = (version: Version): DefaultTheme.SidebarItem[] => {
   const components: DefaultTheme.SidebarItem[] = [
     { text: 'Messages', link: `${base}/components/messages` },
     { text: 'Commiter', link: `${base}/components/commiter` },
-    ...(version === '2.x' ? [{ text: 'Metadata', link: `${base}/components/metadata` }] : []),
+    ...(version === '2.x' ? [
+      { text: 'Metadata', link: `${base}/components/metadata` },
+      { text: 'Типизированные топики', link: `${base}/components/typed-topics` },
+    ] : []),
   ]
 
   return [
@@ -147,6 +153,7 @@ export default defineConfig({
               { text: 'Messages', link: `/docs/${LATEST}/components/messages` },
               { text: 'Commiter', link: `/docs/${LATEST}/components/commiter` },
               { text: 'Metadata', link: `/docs/${LATEST}/components/metadata` },
+              { text: 'Typed topics', link: `/docs/${LATEST}/components/typed-topics` },
             ],
           },
           {
@@ -196,6 +203,7 @@ export default defineConfig({
               { text: 'Messages', link: `/ru/docs/${LATEST}/components/messages` },
               { text: 'Commiter', link: `/ru/docs/${LATEST}/components/commiter` },
               { text: 'Metadata', link: `/ru/docs/${LATEST}/components/metadata` },
+              { text: 'Типизированные топики', link: `/ru/docs/${LATEST}/components/typed-topics` },
             ],
           },
           {

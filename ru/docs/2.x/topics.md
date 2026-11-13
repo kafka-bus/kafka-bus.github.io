@@ -128,3 +128,7 @@ $worker = new Worker('products', [$topicRegistry->get('products')]);
 
 - если воркер читает топик без маршрута в ресивере, `dispatch()` завершается `MessageConsumerNotHandledException`, внутри которого `RouteConsumerException`;
 - у топика не больше одного обработчика на шину: если два маршрута указывают на один физический топик, остаётся только последний.
+
+## Несколько типов сообщений в одном топике
+
+Используйте [типизированные топики](/ru/docs/2.x/components/typed-topics): `HasMessageType` задаёт заголовок типа, а `TypedTopicHandler` выбирает фабрику и callback. В актуальном Laravel Bridge `PublisherTypedTopicMiddleware` подключён по умолчанию.

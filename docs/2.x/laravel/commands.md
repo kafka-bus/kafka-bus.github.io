@@ -13,6 +13,7 @@ The Laravel bridge registers Artisan commands for running workers, inspecting ro
 |---|---|
 | `kafka:consume {workerName*}` | Runs one or several workers in one process |
 | `kafka:consume:routes {--expect=*}` | Runs every consumer route in one process |
+| `kafka:topic:list` | Shows all configured topics, partition offsets, and availability |
 | `kafka:worker:list` | Lists workers and their topics |
 | `kafka:consumer:route:list` | Lists consumer routes: topic → handler and middleware |
 | `kafka:publisher:route:list` | Lists producer routes: message class → topic |
@@ -68,6 +69,29 @@ php artisan kafka:consume:routes --expect=orders --expect=legacy
 ```
 
 `--expect` takes topic keys. If nothing is left to read, the command prints `No workers for consuming.` and exits with code `1`.
+
+## Inspecting topic availability {#topic-list}
+
+Available since Laravel Bridge 2.1, this command inspects every topic in `kafka-bus.topics`, including topics without a route in `consumers.routes`. It lists the application's configured topics, not every topic in the cluster.
+
+```bash
+php artisan kafka:topic:list
+```
+
+The output columns are `Topic key`, `Topic name`, `Partition`, `Current`, `Min`, `Max`, and `Status`. Each partition gets a row; `Topic name` includes the configured prefix. `Current` is the committed offset for the global group in `consumers.additional_options.group.id`; `Min` and `Max` are the available offset bounds. Worker-specific group overrides are not inspected.
+
+For example, an available empty partition without a committed offset shows `Current: n/a`, `Min: 0`, `Max: 0`, and `Status: OK`. A missing committed offset alone does not make a partition unavailable.
+
+| Status | Meaning |
+|---|---|
+| `OK` | The partition ID and offset bounds are available |
+| `Unavailable: topic missing or inaccessible` | The partition ID or offset bounds are unavailable |
+| `Unavailable: no partitions returned` | No partitions were returned for the topic |
+| `Error: …` | The request raised an rdkafka exception; its message appears in the row |
+
+The command continues checking other topics after an unavailable topic or an rdkafka exception. It exits with `1` if any check failed, otherwise `0`. With no configured topics, it prints `No topics configured` and returns `0`.
+
+Unlike `kafka:consumer:offset:show` without arguments, this command also includes producer-only topics. It does not change offsets.
 
 ## kafka:worker:list
 

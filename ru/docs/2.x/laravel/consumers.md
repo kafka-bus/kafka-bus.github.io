@@ -286,3 +286,7 @@ php artisan kafka:worker:list
 ```
 
 Первая команда выводит каждый топик с обработчиком и итоговой цепочкой middleware, вторая — каждый воркер и его топики. См. [Команды](/ru/docs/2.x/laravel/commands).
+
+## Несколько типов сообщений в одном топике
+
+Используйте [типизированные топики](/ru/docs/2.x/components/typed-topics): `HasMessageType` задаёт заголовок типа, а `TypedTopicHandler` выбирает фабрику и callback. В актуальном Laravel Bridge `PublisherTypedTopicMiddleware` подключён по умолчанию.

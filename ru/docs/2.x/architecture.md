@@ -220,5 +220,6 @@ packages/
 ├── worker/src/        # Worker, WorkerRunner, WorkerRunnerFactory, WorkerMerger, ConsumerStream
 ├── metadata/src/      # Metadata, TopicsMetadata, ConsumerGroupMetadata, Partitions
 ├── messages/src/      # Payload, DomainMessage, JsonMessage, кастеры, фабрики
+├── typed-topics/src/  # TypedTopicHandler, MessageRoutes, PublisherTypedTopicMiddleware
 └── commiter/src/      # ConsumerCommiterMiddleware, PublisherIdempotencyMiddleware, репозитории
 ```
