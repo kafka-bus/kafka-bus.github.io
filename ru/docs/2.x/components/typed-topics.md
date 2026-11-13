@@ -183,3 +183,114 @@ $routes
 Пустой или неизвестный заголовок не использует обработчик старого формата. `UnroutableMessage` содержит исходное сообщение консьюмера в `message` и причину в `reason` (`MissingHeader` или `UnknownType`). Если callback нужен полученный заголовок, прочитайте его из `$unroutable->message->headers()`.
 
 Исключения фабрики и бизнес-обработчика проходят через обычную [обработку ошибок консьюмера](/ru/docs/2.x/consumer/pipeline). Политика неизвестных типов не перехватывает ошибки декодирования и приложения.
+
+## Тестирование
+
+Для JSON-сообщений из примера используйте `PayloadTestFactory` из `kafka-bus/messages`. Она создаёт плоский JSON payload, который ожидает `JsonMessageFactory`. Фабрики используют Faker; если он ещё не установлен, добавьте зависимость для тестов:
+
+```bash
+composer require --dev fakerphp/faker
+```
+
+```php
+namespace Tests\Factories;
+
+use App\Kafka\Messages\DeliveryUpdated;
+use KafkaBus\Messages\Testing\PayloadTestFactory;
+use KafkaBus\TypedTopics\HasMessageType;
+
+/**
+ * @extends PayloadTestFactory<DeliveryUpdated>
+ */
+final class DeliveryUpdatedFactory extends PayloadTestFactory
+{
+    protected string $topicKey = 'delivery';
+
+    protected string $payloadClass = DeliveryUpdated::class;
+
+    /** @var array<string, string> */
+    protected array $headers = [
+        HasMessageType::HEADER_NAME => DeliveryUpdated::TYPE,
+    ];
+
+    public function definition(): array
+    {
+        return ['delivery_id' => $this->faker->numberBetween(1, 1000)];
+    }
+}
+```
+
+### Подготовка входящей записи
+
+Задайте заголовок типа один раз в свойстве `$headers` фабрики. Вызовите `make()`, чтобы получить `RdKafka\Message`. Метод `payload()` возвращает DTO и не проверяет маршрутизацию входящей записи.
+
+::: info Заголовки по умолчанию
+`TestFactory` применяет `$headers` при создании фабрики, поэтому каждый вызов `make()` уже содержит `x-message-type`. Фабрика не запускает pipeline продюсера и не вызывает `HasMessageType::getMessageType()` или `HasKey::getKey()`: тип задаётся в `$headers`, а ключ Kafka — через `withKey()`.
+:::
+
+```php
+use Tests\Factories\DeliveryUpdatedFactory;
+
+$factory = DeliveryUpdatedFactory::new()
+    ->withKey('42');
+
+$record = $factory->make(['delivery_id' => 42]);
+```
+
+Для `$receiver` и `$topics` из примера выше передайте реестр в `withTopicKey()`, чтобы преобразовать логический ключ в физическое имя топика:
+
+```php
+use KafkaBus\Core\Consumers\Messages\ConsumerMessage;
+
+$record = $factory
+    ->withTopicKey('delivery', $topics)
+    ->make(['delivery_id' => 42]);
+
+$receiver->dispatch(new ConsumerMessage($record));
+```
+
+Запись будет декодирована в `DeliveryUpdated` и передана в `onUpdated()`. В тесте проверяйте результат бизнес-обработчика: например, обновлённую запись в базе или вызов внедрённого сервиса.
+
+### Запуск через Laravel Fake
+
+При конфигурации маршрутов из раздела Laravel можно проверить полный цикл чтения. Fake сам преобразует логический ключ топика с учётом префикса:
+
+```php
+use KafkaBus\Laravel\Facades\KafkaBus;
+use Tests\Factories\DeliveryUpdatedFactory;
+
+it('consumes a typed delivery update', function () {
+    KafkaBus::fake();
+
+    $record = DeliveryUpdatedFactory::new()
+        ->withKey('42')
+        ->withOffset(0)
+        ->make(['delivery_id' => 42]);
+
+    KafkaBus::addMessage($record);
+    KafkaBus::listen('delivery');
+
+    KafkaBus::assertCommittedTimes('delivery', 1);
+});
+```
+
+Проверка коммита подтверждает завершение обработки, но сама по себе не доказывает выбор callback: по умолчанию неизвестные типы тоже завершаются успешно. Дополните тест проверкой результата `onUpdated()`.
+
+Для `DeliveryCompleted` используйте отдельную фабрику с `payloadClass = DeliveryCompleted::class` и значением `DeliveryCompleted::TYPE` в `$headers`. У нескольких записей в одной партиции задавайте разные оффсеты, чтобы защита от дублей не пропустила следующую запись.
+
+Отдельно проверьте запись без заголовка и запись с неизвестным типом: они должны следовать выбранной политике `whenHeaderMissing()` / `onUnroutable()`. `withHeaders()` заменяет весь набор заголовков, поэтому передавайте тип и остальные нужные заголовки одним массивом.
+
+
+Переопределяйте заголовки через `withHeaders()` для отдельных сценариев тестирования:
+
+```php
+use KafkaBus\TypedTopics\HasMessageType;
+use Tests\Factories\DeliveryUpdatedFactory;
+
+$withoutType = DeliveryUpdatedFactory::new()->withHeaders([])->make();
+$unknownType = DeliveryUpdatedFactory::new()
+    ->withHeaders([HasMessageType::HEADER_NAME => 'delivery.unknown'])
+    ->make();
+```
+
+Для сообщений на базе `DomainMessage` используйте `DomainMessageTestFactory`: она создаёт обёртку `event`, `attributes`, `dirty`. Заголовок типа также задайте в её свойстве `$headers`. Подробнее — [фабрики тестовых сообщений](/ru/docs/2.x/components/messages) и [тестирование в Laravel](/ru/docs/2.x/laravel/testing).

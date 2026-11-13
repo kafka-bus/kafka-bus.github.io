@@ -356,6 +356,18 @@ class ProductConsumer
 
 Все фабрики иммутабельны: каждый `with*` возвращает клон.
 
+### Заголовки фабрики по умолчанию
+
+В наследниках `TestFactory`, включая `PayloadTestFactory` и `DomainMessageTestFactory`, задайте `protected array $headers`, чтобы все записи из `make()` получали постоянные заголовки:
+
+```php
+protected array $headers = [
+    'x-message-type' => 'delivery.updated',
+];
+```
+
+`withHeaders()` заменяет весь набор заголовков, включая значения по умолчанию; `withHeaders([])` удаляет их для конкретного экземпляра-клона. Пример типизированной фабрики — в [тестировании типизированных топиков](/ru/docs/2.x/components/typed-topics#тестирование).
+
 ### DomainMessageTestFactory
 
 ```php
